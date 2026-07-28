@@ -1,0 +1,129 @@
+ [latin_clave_syncopated]
+ ghost_note_dynamic_ratio = 0.4
+ palm_mute_decay_cutoff_sec = 0.12
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.08
+ hammer_pull_max_interval = 3
+ vibrato_depth_threshold_cents = 20
+ unpitched_percussive_thump_filtering = "keep_anchor_only"
+ legato_threshold_seconds = 0.06
+ slide_threshold_seconds = 0.08
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [caribbean_afro_groove]
+ ghost_note_dynamic_ratio = 0.35
+ palm_mute_decay_cutoff_sec = 0.2
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.12
+ hammer_pull_max_interval = 2
+ vibrato_depth_threshold_cents = 15
+ unpitched_percussive_thump_filtering = "allow_unrestricted"
+ legato_threshold_seconds = 0.07
+ slide_threshold_seconds = 0.09
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [funk_disco_slap]
+ ghost_note_dynamic_ratio = 0.5
+ palm_mute_decay_cutoff_sec = 0.08
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.06
+ hammer_pull_max_interval = 4
+ vibrato_depth_threshold_cents = 15
+ unpitched_percussive_thump_filtering = "allow_unrestricted"
+ legato_threshold_seconds = 0.05
+ slide_threshold_seconds = 0.07
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [soul_rnb_gospel]
+ ghost_note_dynamic_ratio = 0.3
+ palm_mute_decay_cutoff_sec = 0.15
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.1
+ hammer_pull_max_interval = 5
+ vibrato_depth_threshold_cents = 25
+ unpitched_percussive_thump_filtering = "keep_anchor_only"
+ legato_threshold_seconds = 0.08
+ slide_threshold_seconds = 0.10
+ slide_min_interval = 1
+ slide_min_fret_span = 1
+
+ [jazz_swing_acoustic]
+ ghost_note_dynamic_ratio = 0.3
+ palm_mute_decay_cutoff_sec = 0.25
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.1
+ hammer_pull_max_interval = 5
+ vibrato_depth_threshold_cents = 30
+ unpitched_percussive_thump_filtering = "suppress_all"
+ legato_threshold_seconds = 0.08
+ slide_threshold_seconds = 0.12
+ slide_min_interval = 1
+ slide_min_fret_span = 1
+
+ [blues_roots_country]
+ ghost_note_dynamic_ratio = 0.35
+ palm_mute_decay_cutoff_sec = 0.18
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.09
+ hammer_pull_max_interval = 4
+ vibrato_depth_threshold_cents = 20
+ unpitched_percussive_thump_filtering = "keep_anchor_only"
+ legato_threshold_seconds = 0.08
+ slide_threshold_seconds = 0.10
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [rock_punk_alternative]
+ ghost_note_dynamic_ratio = 0.25
+ palm_mute_decay_cutoff_sec = 0.1
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.08
+ hammer_pull_max_interval = 3
+ vibrato_depth_threshold_cents = 15
+ unpitched_percussive_thump_filtering = "keep_anchor_only"
+ legato_threshold_seconds = 0.06
+ slide_threshold_seconds = 0.08
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [metal_extreme]
+ ghost_note_dynamic_ratio = 0.15
+ palm_mute_decay_cutoff_sec = 0.06
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.05
+ hammer_pull_max_interval = 2
+ vibrato_depth_threshold_cents = 10
+ unpitched_percussive_thump_filtering = "suppress_all"
+ legato_threshold_seconds = 0.04
+ slide_threshold_seconds = 0.06
+ slide_min_interval = 3
+ slide_min_fret_span = 3
+
+ [prog_math_complex]
+ ghost_note_dynamic_ratio = 0.3
+ palm_mute_decay_cutoff_sec = 0.08
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.06
+ hammer_pull_max_interval = 5
+ vibrato_depth_threshold_cents = 15
+ unpitched_percussive_thump_filtering = "suppress_all"
+ legato_threshold_seconds = 0.05
+ slide_threshold_seconds = 0.08
+ slide_min_interval = 2
+ slide_min_fret_span = 2
+
+ [four_on_floor_dance]
+ ghost_note_dynamic_ratio = 0.1
+ palm_mute_decay_cutoff_sec = 0.05
+ slap_pop_pitch_split_midi = 43
+ rake_threshold_seconds = 0.04
+ hammer_pull_max_interval = 1
+ vibrato_depth_threshold_cents = 5
+ unpitched_percussive_thump_filtering = "suppress_all"
+ legato_threshold_seconds = 0.03
+ slide_threshold_seconds = 0.05
+ slide_min_interval = 4
+ slide_min_fret_span = 4

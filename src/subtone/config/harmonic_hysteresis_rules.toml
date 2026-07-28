@@ -1,0 +1,89 @@
+[latin_clave_syncopated]
+scale_snapping_rigor = "strict_diatonic"
+chromatic_voice_leading_threshold_sec = 0.12
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 4
+blue_note_preservation = false
+accidental_spelling_mode = "contextual"
+modal_snapping_fallback = "dorian_to_minor"
+
+[caribbean_afro_groove]
+scale_snapping_rigor = "modal_permissive"
+chromatic_voice_leading_threshold_sec = 0.16
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 8
+blue_note_preservation = true
+accidental_spelling_mode = "flat_bias"
+modal_snapping_fallback = "mixolydian_to_major"
+
+[funk_disco_slap]
+scale_snapping_rigor = "chromatic_direct"
+chromatic_voice_leading_threshold_sec = 0.08
+chord_outline_prioritization = "scale_degrees"
+key_drift_tolerance_bars = 2
+blue_note_preservation = true
+accidental_spelling_mode = "contextual"
+modal_snapping_fallback = "dorian_to_minor"
+
+[soul_rnb_gospel]
+scale_snapping_rigor = "modal_permissive"
+chromatic_voice_leading_threshold_sec = 0.1
+chord_outline_prioritization = "scale_degrees"
+key_drift_tolerance_bars = 3
+blue_note_preservation = true
+accidental_spelling_mode = "flat_bias"
+modal_snapping_fallback = "dorian_to_minor"
+
+[jazz_swing_acoustic]
+scale_snapping_rigor = "chromatic_direct"
+chromatic_voice_leading_threshold_sec = 0.06
+chord_outline_prioritization = "scale_degrees"
+key_drift_tolerance_bars = 1
+blue_note_preservation = true
+accidental_spelling_mode = "contextual"
+modal_snapping_fallback = "melodic_minor_to_minor"
+
+[blues_roots_country]
+scale_snapping_rigor = "modal_permissive"
+chromatic_voice_leading_threshold_sec = 0.14
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 6
+blue_note_preservation = true
+accidental_spelling_mode = "sharp_bias"
+modal_snapping_fallback = "mixolydian_to_major"
+
+[rock_punk_alternative]
+scale_snapping_rigor = "strict_diatonic"
+chromatic_voice_leading_threshold_sec = 0.15
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 4
+blue_note_preservation = true
+accidental_spelling_mode = "sharp_bias"
+modal_snapping_fallback = "natural_minor_to_minor"
+
+[metal_extreme]
+scale_snapping_rigor = "strict_diatonic"
+chromatic_voice_leading_threshold_sec = 0.18
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 4
+blue_note_preservation = false
+accidental_spelling_mode = "sharp_bias"
+modal_snapping_fallback = "phrygian_to_minor"
+
+[prog_math_complex]
+scale_snapping_rigor = "chromatic_direct"
+chromatic_voice_leading_threshold_sec = 0.08
+chord_outline_prioritization = "scale_degrees"
+key_drift_tolerance_bars = 2
+blue_note_preservation = true
+accidental_spelling_mode = "contextual"
+modal_snapping_fallback = "lydian_to_major"
+
+[four_on_floor_dance]
+scale_snapping_rigor = "strict_diatonic"
+chromatic_voice_leading_threshold_sec = 0.1
+chord_outline_prioritization = "root_fifths_octaves"
+key_drift_tolerance_bars = 4
+blue_note_preservation = false
+accidental_spelling_mode = "contextual"
+modal_snapping_fallback = "natural_minor_to_minor"

@@ -1,0 +1,365 @@
+ [latin_clave_syncopated]
+ tuning = "4_string_standard"
+ technique = "fingerstyle"
+ rhythmic_grid = "clave_based"
+
+ [latin_clave_syncopated.rhythmic_anchor]
+ pattern = "clave_tumbao"
+ lock_strength = "strict"
+
+ [latin_clave_syncopated.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = false
+
+ [latin_clave_syncopated.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 10.0
+ position_shift_multiplier = 2.0
+ open_string_bonus = -1.5
+
+ [latin_clave_syncopated.cross_stem_validation.drums]
+ rule_key = "reinforce_tumbao_beat_four_and"
+ reference_pattern = "latin_clave_syncopated"
+ alignment_threshold_ms = 60
+
+ [latin_clave_syncopated.cross_stem_validation.piano]
+ rule_key = "align_with_chord_changes"
+ reference_pattern = "latin_clave_syncopated"
+ pitch_congruence = "chordal"
+
+ [latin_clave_syncopated.structural]
+ phrase_length_measures = 4
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "bridge", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [caribbean_afro_groove]
+ tuning = "4_string_standard"
+ technique = "thumb_mute"
+ rhythmic_grid = "laid_back_straight"
+
+ [caribbean_afro_groove.rhythmic_anchor]
+ pattern = "one_drop_skank"
+ lock_strength = "moderate"
+
+ [caribbean_afro_groove.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = false
+
+ [caribbean_afro_groove.costs]
+ pop_non_treble_penalty = 30.0
+ slap_non_bass_penalty = 25.0
+ fret_stretch_penalty = 15.0
+ position_shift_multiplier = 2.5
+ open_string_bonus = -3.5
+
+ [caribbean_afro_groove.cross_stem_validation.drums]
+ rule_key = "one_drop_alignment"
+ reference_pattern = "caribbean_afro_groove"
+ alignment_threshold_ms = 80
+
+ [caribbean_afro_groove.cross_stem_validation.guitar]
+ rule_key = "skank_offbeat_alignment"
+ filter_bleed = true
+
+ [caribbean_afro_groove.structural]
+ phrase_length_measures = 8
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [funk_disco_slap]
+ tuning = "4_string_standard"
+ technique = "slap_pop"
+ rhythmic_grid = "16th_syncopated"
+
+ [funk_disco_slap.rhythmic_anchor]
+ pattern = "downbeat_one"
+ lock_strength = "moderate"
+
+ [funk_disco_slap.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = false
+
+ [funk_disco_slap.costs]
+ pop_non_treble_penalty = 0.0
+ slap_non_bass_penalty = 0.0
+ fret_stretch_penalty = 15.0
+ position_shift_multiplier = 2.5
+ open_string_bonus = -1.0
+
+ [funk_disco_slap.cross_stem_validation.drums]
+ rule_key = "pocket_groove_sync"
+ reference_pattern = "funk_disco_slap"
+ alignment_threshold_ms = 40
+
+ [funk_disco_slap.cross_stem_validation.other]
+ rule_key = "synth_bass_bleed_filter"
+ spectral_threshold = 0.7
+
+ [funk_disco_slap.structural]
+ phrase_length_measures = 8
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "bridge", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [soul_rnb_gospel]
+ tuning = "4_string_standard"
+ technique = "fingerstyle"
+ rhythmic_grid = "swung_16th"
+
+ [soul_rnb_gospel.rhythmic_anchor]
+ pattern = "downbeat_one"
+ lock_strength = "elastic"
+
+ [soul_rnb_gospel.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = false
+
+ [soul_rnb_gospel.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 10.0
+ position_shift_multiplier = 2.0
+ open_string_bonus = -1.5
+
+ [soul_rnb_gospel.cross_stem_validation.drums]
+ rule_key = "pocket_groove_sync"
+ reference_pattern = "soul_rnb_gospel"
+ alignment_threshold_ms = 50
+
+ [soul_rnb_gospel.cross_stem_validation.vocals]
+ rule_key = "suppress_high_register_bleed"
+ cutoff_pitch = 55
+
+ [soul_rnb_gospel.structural]
+ phrase_length_measures = 8
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "bridge", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [jazz_swing_acoustic]
+ tuning = "4_string_standard"
+ technique = "upright_sim"
+ rhythmic_grid = "triplet_swing"
+
+ [jazz_swing_acoustic.rhythmic_anchor]
+ pattern = "walking_quarter"
+ lock_strength = "strict"
+
+ [jazz_swing_acoustic.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = false
+
+ [jazz_swing_acoustic.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 10.0
+ position_shift_multiplier = 2.0
+ open_string_bonus = -1.5
+
+ [jazz_swing_acoustic.cross_stem_validation.drums]
+ rule_key = "walking_quarter_reinforce"
+ reference_pattern = "jazz_swing_acoustic"
+ alignment_threshold_ms = 50
+
+ [jazz_swing_acoustic.cross_stem_validation.piano]
+ rule_key = "bass_must_provide_roots_on_downbeats"
+ reference_pattern = "jazz_swing_acoustic"
+
+ [jazz_swing_acoustic.structural]
+ phrase_length_measures = 4
+ typical_structure = ["head_intro", "head_melody", "solos", "head_melody", "outro"]
+ cross_section_healing = false
+ melodic_strictest_bounds = true
+
+ [blues_roots_country]
+ tuning = "4_string_standard"
+ technique = "fingerstyle"
+ rhythmic_grid = "shuffle_triplet"
+
+ [blues_roots_country.rhythmic_anchor]
+ pattern = "kick_lock"
+ lock_strength = "moderate"
+
+ [blues_roots_country.features]
+ ghost_notes = true
+ compound_meter = true
+ downpicking_preference = false
+ synth_emulation = false
+
+ [blues_roots_country.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 15.0
+ position_shift_multiplier = 2.5
+ open_string_bonus = -2.0
+
+ [blues_roots_country.cross_stem_validation.drums]
+ rule_key = "pocket_groove_sync"
+ alignment_threshold_ms = 60
+
+ [blues_roots_country.cross_stem_validation.piano]
+ rule_key = "mirror_piano_left_hand_walking"
+ reference_pattern = "blues_roots_country"
+
+ [blues_roots_country.structural]
+ phrase_length_measures = 12
+ typical_structure = ["intro", "verse", "verse", "solos", "verse", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [rock_punk_alternative]
+ tuning = "4_string_standard"
+ technique = "plectrum"
+ rhythmic_grid = "straight_8th"
+
+ [rock_punk_alternative.rhythmic_anchor]
+ pattern = "kick_lock"
+ lock_strength = "strict"
+
+ [rock_punk_alternative.features]
+ ghost_notes = true
+ compound_meter = false
+ downpicking_preference = true
+ synth_emulation = false
+
+ [rock_punk_alternative.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 25.0
+ position_shift_multiplier = 3.5
+ open_string_bonus = -3.0
+
+ [rock_punk_alternative.cross_stem_validation.drums]
+ rule_key = "force_downbeat_kick_lock"
+ alignment_threshold_ms = 40
+
+ [rock_punk_alternative.cross_stem_validation.guitar]
+ rule_key = "guitar_unison_validation"
+ match_octaves = true
+
+ [rock_punk_alternative.structural]
+ phrase_length_measures = 8
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "bridge", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [metal_extreme]
+ tuning = "5_string_standard"
+ technique = "plectrum"
+ rhythmic_grid = "straight_16th"
+
+ [metal_extreme.rhythmic_anchor]
+ pattern = "kick_lock"
+ lock_strength = "strict"
+
+ [metal_extreme.features]
+ ghost_notes = false
+ compound_meter = false
+ downpicking_preference = true
+ synth_emulation = false
+
+ [metal_extreme.costs]
+ pop_non_treble_penalty = 30.0
+ slap_non_bass_penalty = 20.0
+ fret_stretch_penalty = 30.0
+ position_shift_multiplier = 4.0
+ open_string_bonus = -4.0
+
+ [metal_extreme.cross_stem_validation.drums]
+ rule_key = "double_kick_bleed_filter"
+ reference_pattern = "metal_extreme"
+
+ [metal_extreme.cross_stem_validation.guitar]
+ rule_key = "guitar_unison_validation"
+ high_velocity_unison_fill = true
+
+ [metal_extreme.structural]
+ phrase_length_measures = 8
+ typical_structure = ["intro", "verse", "chorus", "verse", "chorus", "bridge", "chorus", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true
+
+ [prog_math_complex]
+ tuning = "4_string_standard"
+ technique = "fingerstyle"
+ rhythmic_grid = "polyrhythmic"
+
+ [prog_math_complex.rhythmic_anchor]
+ pattern = "freestyle_syncopated"
+ lock_strength = "decoupled"
+
+ [prog_math_complex.features]
+ ghost_notes = true
+ compound_meter = true
+ downpicking_preference = false
+ synth_emulation = false
+
+ [prog_math_complex.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 20.0
+ position_shift_multiplier = 3.0
+ open_string_bonus = -2.5
+
+ [prog_math_complex.cross_stem_validation.drums]
+ rule_key = "pocket_groove_sync"
+ alignment_threshold_ms = 30
+
+ [prog_math_complex.cross_stem_validation.guitar]
+ rule_key = "guitar_unison_validation"
+
+ [prog_math_complex.structural]
+ phrase_length_measures = 4
+ typical_structure = ["section_A", "section_B", "section_C", "section_A", "section_D"]
+ cross_section_healing = false
+ melodic_strictest_bounds = false
+
+ [four_on_floor_dance]
+ tuning = "4_string_standard"
+ technique = "synth_emulation"
+ rhythmic_grid = "quantized_straight"
+
+ [four_on_floor_dance.rhythmic_anchor]
+ pattern = "kick_lock"
+ lock_strength = "strict"
+
+ [four_on_floor_dance.features]
+ ghost_notes = false
+ compound_meter = false
+ downpicking_preference = false
+ synth_emulation = true
+
+ [four_on_floor_dance.costs]
+ pop_non_treble_penalty = 25.0
+ slap_non_bass_penalty = 18.0
+ fret_stretch_penalty = 20.0
+ position_shift_multiplier = 3.0
+ open_string_bonus = -2.0
+
+ [four_on_floor_dance.cross_stem_validation.drums]
+ rule_key = "force_downbeat_kick_lock"
+ reference_pattern = "four_on_floor_dance"
+ alignment_threshold_ms = 30
+
+ [four_on_floor_dance.cross_stem_validation.other]
+ rule_key = "synth_bass_bleed_filter"
+ spectral_threshold = 0.8
+
+ [four_on_floor_dance.structural]
+ phrase_length_measures = 8
+ typical_structure = ["build_up", "drop", "verse_groove", "drop", "outro"]
+ cross_section_healing = true
+ melodic_strictest_bounds = true

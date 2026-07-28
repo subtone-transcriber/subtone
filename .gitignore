@@ -1,0 +1,73 @@
+# ==========================================
+# macOS System Files
+# ==========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Files that might be created on external drives / network shares
+.Spotlight-V100
+.Trashes
+
+# ==========================================
+# Byte-compiled / Optimized / DLL files
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+.venv/
+.venv*
+.venv_*
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.venv*
+
+# ==========================================
+# Packaging & Distributions (Plugin/Package Build Artifacts)
+# ==========================================
+build/
+bdist.*/
+sdist/
+dist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# Testing & Coverage Metrics
+# ==========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
+.hypothesis/
+
+# ==========================================
+# IDEs & Editor Settings (Optional, but handy)
+# ==========================================
+.idea/
+.vscode/
+*.swp
+*~__py_cache_
+
+# ==========================================
+# Files specific to subtone 
+# ==========================================
+output_bass
+testoutput*
+midi

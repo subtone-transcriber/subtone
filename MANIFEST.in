@@ -1,0 +1,8 @@
+graft src/subtone
+include README.md
+include pyproject.toml
+
+prune output_bass
+prune tests
+exclude subtone.sh
+global-exclude *.py[cod] __pycache__

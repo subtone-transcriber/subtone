@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "subtone"
+version = "0.1.0"
+description = "Genre centered music transcription framework"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "soundfile>=0.12.1",
+    "soxr>=0.3.5",
+    "librosa>=0.10.2",
+    "music21>=9.0.0",
+    "pretty-midi>=0.2.10",
+    "omegaconf",
+    "pydantic>=2.0.0",
+    "setuptools",                   # <-- ADD THIS to provide pkg_resources at runtime
+    "resampy>=0.2.2,<0.4.3"         # <-- FIXED quotes here
+]
+
+[project.scripts]
+subtone = "subtone.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+subtone = ["config/*.toml"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.sh", "samples"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E501", "N802", "N803", "N806", "B905", "B023", "F841"]
+
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+explicit_package_bases = true
+mypy_path = "src"
+

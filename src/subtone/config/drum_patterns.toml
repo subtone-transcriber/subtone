@@ -1,0 +1,57 @@
+ [four_on_floor_dance]
+ pattern_name = "four_on_the_floor"
+ kick_beats = [0.0, 1.0, 2.0, 3.0]
+ snare_beats = [1.0, 3.0]
+ hihat_beats = [0.5, 1.5, 2.5, 3.5]
+
+ [four_on_floor_dance.rules]
+ force_downbeat_kick_lock = true
+ suppress_weird_syncopations = true
+ gate_micro_duration = 0.12
+
+ [caribbean_afro_groove]
+ pattern_name = "one_drop_reggae"
+ kick_beats = [2.0]
+ snare_beats = [2.0]
+ hihat_beats = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+
+ [caribbean_afro_groove.rules]
+ silence_beat_one = true
+ reinforce_beat_three = true
+ skank_offbeat_alignment = true
+
+ [latin_clave_syncopated]
+ pattern_name = "latin_tumbao_groove"
+ kick_beats = [0.0, 2.5]
+ conga_slaps = [1.0, 3.0, 3.5]
+
+ [latin_clave_syncopated.rules]
+ reinforce_tumbao_beat_four_and = true
+ conga_slap_syncopation_lock = true
+
+ [metal_extreme]
+ pattern_name = "double_kick_blast"
+ kick_beats = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+ snare_beats = [1.0, 3.0]
+
+ [metal_extreme.rules]
+ double_kick_bleed_filter = true
+ high_velocity_unison_fill = true
+
+ [jazz_swing_acoustic]
+ pattern_name = "swing_ride_pattern"
+ ride_beats = [0.0, 1.0, 1.66, 2.0, 3.0, 3.66]
+ hihat_foot = [1.0, 3.0]
+
+ [jazz_swing_acoustic.rules]
+ swing_grid_snap = true
+ walking_quarter_reinforce = true
+
+ [soul_rnb_gospel]
+ pattern_name = "backbeat_soul"
+ kick_beats = [0.0, 2.0, 2.5]
+ snare_beats = [1.0, 3.0]
+
+ [soul_rnb_gospel.rules]
+ pocket_groove_sync = true
+ suppress_flams = true

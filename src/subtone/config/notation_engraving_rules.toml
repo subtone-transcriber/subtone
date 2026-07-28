@@ -1,0 +1,99 @@
+[latin_clave_syncopated]
+beaming_time_signature_rules = "split_by_half_measure"
+syncopation_simplification_level = "low_direct_ties"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = true
+tie_across_barlines_only = false
+accidentals_spelling_preference = "flat"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = false
+
+[caribbean_afro_groove]
+beaming_time_signature_rules = "split_by_beat"
+syncopation_simplification_level = "moderate_grouping"
+rest_grouping_conservatism = "aggregate_rests_whenever_possible"
+beam_triplets_individually = true
+tie_across_barlines_only = true
+accidentals_spelling_preference = "flat"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = true
+
+[funk_disco_slap]
+beaming_time_signature_rules = "split_by_half_measure"
+syncopation_simplification_level = "low_direct_ties"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = false
+tie_across_barlines_only = false
+accidentals_spelling_preference = "sharp_flat_hybrid"
+multi_voice_polyphony_splitting = true
+allow_implicit_durations = false
+
+[soul_rnb_gospel]
+beaming_time_signature_rules = "split_by_half_measure"
+syncopation_simplification_level = "moderate_grouping"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = true
+tie_across_barlines_only = false
+accidentals_spelling_preference = "flat"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = false
+
+[jazz_swing_acoustic]
+beaming_time_signature_rules = "split_by_beat"
+syncopation_simplification_level = "high_split_ties"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = true
+tie_across_barlines_only = false
+accidentals_spelling_preference = "flat"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = false
+
+[blues_roots_country]
+beaming_time_signature_rules = "split_by_beat"
+syncopation_simplification_level = "moderate_grouping"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = true
+tie_across_barlines_only = false
+accidentals_spelling_preference = "sharp"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = false
+
+[rock_punk_alternative]
+beaming_time_signature_rules = "aggregate_bar_level"
+syncopation_simplification_level = "low_direct_ties"
+rest_grouping_conservatism = "aggregate_rests_whenever_possible"
+beam_triplets_individually = false
+tie_across_barlines_only = true
+accidentals_spelling_preference = "sharp"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = true
+
+[metal_extreme]
+beaming_time_signature_rules = "aggregate_bar_level"
+syncopation_simplification_level = "low_direct_ties"
+rest_grouping_conservatism = "aggregate_rests_whenever_possible"
+beam_triplets_individually = false
+tie_across_barlines_only = true
+accidentals_spelling_preference = "sharp"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = true
+
+[prog_math_complex]
+beaming_time_signature_rules = "split_by_beat_strictly"
+syncopation_simplification_level = "high_split_ties"
+rest_grouping_conservatism = "strict_beat_boundaries"
+beam_triplets_individually = true
+tie_across_barlines_only = false
+accidentals_spelling_preference = "sharp_flat_hybrid"
+multi_voice_polyphony_splitting = true
+allow_implicit_durations = false
+
+[four_on_floor_dance]
+beaming_time_signature_rules = "split_by_half_measure"
+syncopation_simplification_level = "low_direct_ties"
+rest_grouping_conservatism = "aggregate_rests_whenever_possible"
+beam_triplets_individually = false
+tie_across_barlines_only = true
+accidentals_spelling_preference = "sharp_flat_hybrid"
+multi_voice_polyphony_splitting = false
+allow_implicit_durations = true

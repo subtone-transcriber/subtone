@@ -1,0 +1,474 @@
+# ==============================================================================
+# SUBTONE GENRE & STYLE TAXONOMY CONFIGURATION
+# Fully aligned with Discogs 400 Style Taxonomy and musicological research.
+# ==============================================================================
+
+default = { extends = "rock_punk_alternative" }
+
+# ------------------------------------------------------------------------------
+# ELECTRONIC MASTER CATEGORIES & STYLE DEEP MAPPINGS
+# ------------------------------------------------------------------------------
+
+# -- Simple Inline Entries --
+"electro house" = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "kick_lock", lock_strength = "strict" } }
+"french house" = { extends = "funk_disco_slap", rhythmic_anchor = { pattern = "downbeat_one", lock_strength = "strict" } }
+gabber = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "kick_lock", lock_strength = "strict" } }
+hardcore = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "kick_lock", lock_strength = "strict" } }
+minimal = { extends = "four_on_floor_dance" }
+"nu-disco" = { extends = "funk_disco_slap" }
+"tech house" = { extends = "four_on_floor_dance" }
+techno = { extends = "four_on_floor_dance" }
+trance = { extends = "four_on_floor_dance" }
+"trip hop" = { extends = "four_on_floor_dance" }
+"uk garage" = { extends = "four_on_floor_dance" }
+acid = { extends = "four_on_floor_dance" }
+"acid house" = { extends = "four_on_floor_dance" }
+"acid techno" = { extends = "four_on_floor_dance" }
+breakcore = { extends = "prog_math_complex" }
+breaks = { extends = "four_on_floor_dance" }
+chiptune = { extends = "four_on_floor_dance" }
+"dark ambient" = { extends = "four_on_floor_dance" }
+darkwave = { extends = "rock_punk_alternative" }
+downtempo = { extends = "four_on_floor_dance" }
+drone = { extends = "four_on_floor_dance" }
+"dub techno" = { extends = "four_on_floor_dance" }
+ebm = { extends = "rock_punk_alternative" }
+electro = { extends = "four_on_floor_dance" }
+electroclash = { extends = "four_on_floor_dance" }
+"euro house" = { extends = "four_on_floor_dance" }
+"euro-disco" = { extends = "funk_disco_slap" }
+eurobeat = { extends = "four_on_floor_dance" }
+europop = { extends = "four_on_floor_dance" }
+experimental = { extends = "prog_math_complex" }
+"future jazz" = { extends = "jazz_swing_acoustic" }
+"garage house" = { extends = "four_on_floor_dance" }
+"hard beat" = { extends = "four_on_floor_dance" }
+"hard house" = { extends = "four_on_floor_dance" }
+"hard trance" = { extends = "four_on_floor_dance" }
+hardstyle = { extends = "four_on_floor_dance" }
+"hi nrg" = { extends = "four_on_floor_dance" }
+illbient = { extends = "four_on_floor_dance" }
+industrial = { extends = "rock_punk_alternative" }
+"italo house" = { extends = "four_on_floor_dance" }
+"italo-disco" = { extends = "funk_disco_slap" }
+leftfield = { extends = "four_on_floor_dance" }
+"minimal techno" = { extends = "four_on_floor_dance" }
+"modern classical" = { extends = "jazz_swing_acoustic" }
+"neo-trance" = { extends = "four_on_floor_dance" }
+"new age" = { extends = "four_on_floor_dance" }
+"new beat" = { extends = "four_on_floor_dance" }
+noise = { extends = "rock_punk_alternative" }
+"power electronics" = { extends = "metal_extreme" }
+"progressive house" = { extends = "four_on_floor_dance" }
+"progressive trance" = { extends = "four_on_floor_dance" }
+psy-trance = { extends = "four_on_floor_dance" }
+"rhythm & sound" = { extends = "caribbean_afro_groove" }
+"rhythmic noise" = { extends = "rock_punk_alternative" }
+"tech trance" = { extends = "four_on_floor_dance" }
+tribal = { extends = "caribbean_afro_groove" }
+"tribal house" = { extends = "four_on_floor_dance" }
+vaporwave = { extends = "four_on_floor_dance" }
+"witch house" = { extends = "four_on_floor_dance" }
+eurodance = { extends = "four_on_floor_dance" }
+"happy hardcore" = { extends = "four_on_floor_dance" }
+speedcore = { extends = "metal_extreme" }
+donk = { extends = "four_on_floor_dance" }
+grime = { extends = "four_on_floor_dance" }
+"bass music" = { extends = "four_on_floor_dance" }
+footwork = { extends = "four_on_floor_dance" }
+dubtronica = { extends = "caribbean_afro_groove" }
+chillwave = { extends = "four_on_floor_dance" }
+complextro = { extends = "four_on_floor_dance" }
+wave = { extends = "four_on_floor_dance" }
+"tropical house" = { extends = "four_on_floor_dance" }
+"synth-metal" = { extends = "metal_extreme" }
+
+# -- Complex Multi-line Subtables --
+ambient = { extends = "four_on_floor_dance", rhythmic_grid = "laid_back_straight", rhythmic_anchor = { pattern = "freestyle_syncopated", lock_strength = "decoupled" }, features = { ghost_notes = false } }
+"big beat" = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "kick_lock", lock_strength = "strict" }, costs = { pop_non_treble_penalty = 10.0, slap_non_bass_penalty = 10.0 } }
+breakbeat = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "two_step_sync", lock_strength = "moderate" }, cross_stem_validation = { drums = { rule_key = "two_step_sync", alignment_threshold_ms = 40.0 } } }
+"deep house" = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "sub_pulsing", lock_strength = "strict" }, cross_stem_validation = { drums = { rule_key = "sub_pulsing_alignment", alignment_threshold_ms = 30.0 } }, features = { ghost_notes = true } }
+"drum and bass" = { extends = "four_on_floor_dance", rhythmic_grid = "straight_16th", rhythmic_anchor = { pattern = "two_step_sync", lock_strength = "strict" }, cross_stem_validation = { drums = { rule_key = "two_step_sync", alignment_threshold_ms = 30.0 } }, features = { ghost_notes = true } }
+dubstep = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "two_step_sync", lock_strength = "strict" }, features = { ghost_notes = true } }
+house = { extends = "four_on_floor_dance", rhythmic_anchor = { pattern = "kick_lock", lock_strength = "strict" }, features = { ghost_notes = true } }
+idm = { extends = "prog_math_complex", rhythmic_anchor = { pattern = "freestyle_syncopated", lock_strength = "decoupled" } }
+jungle = { extends = "four_on_floor_dance", rhythmic_grid = "straight_16th", rhythmic_anchor = { pattern = "two_step_sync", lock_strength = "strict" }, cross_stem_validation = { drums = { rule_key = "two_step_sync", alignment_threshold_ms = 30.0 } } }
+
+# ------------------------------------------------------------------------------
+# ROCK & METAL STYLES
+# ------------------------------------------------------------------------------
+
+rock = { extends = "rock_punk_alternative" }
+metal = { extends = "metal_extreme" }
+"alternative rock" = { extends = "rock_punk_alternative" }
+"black metal" = { extends = "metal_extreme" }
+"classic rock" = { extends = "rock_punk_alternative" }
+"death metal" = { extends = "metal_extreme" }
+"doom metal" = { extends = "metal_extreme" }
+emo = { extends = "rock_punk_alternative" }
+"gothic rock" = { extends = "rock_punk_alternative" }
+grindcore = { extends = "metal_extreme" }
+grunge = { extends = "rock_punk_alternative" }
+"hard rock" = { extends = "rock_punk_alternative" }
+"heavy metal" = { extends = "metal_extreme" }
+"indie rock" = { extends = "rock_punk_alternative" }
+"math rock" = { extends = "prog_math_complex" }
+metalcore = { extends = "metal_extreme" }
+"new wave" = { extends = "rock_punk_alternative" }
+"nu metal" = { extends = "metal_extreme" }
+"pop punk" = { extends = "rock_punk_alternative" }
+"post-hardcore" = { extends = "rock_punk_alternative" }
+"post-rock" = { extends = "rock_punk_alternative" }
+"power metal" = { extends = "metal_extreme" }
+"progressive metal" = { extends = "prog_math_complex" }
+"progressive rock" = { extends = "prog_math_complex" }
+"punk rock" = { extends = "rock_punk_alternative" }
+shoegaze = { extends = "rock_punk_alternative" }
+"sludge metal" = { extends = "metal_extreme" }
+"speed metal" = { extends = "metal_extreme" }
+"stoner rock" = { extends = "metal_extreme" }
+thrash = { extends = "metal_extreme" }
+"thrash metal" = { extends = "metal_extreme" }
+"art rock" = { extends = "prog_math_complex" }
+"atmospheric black metal" = { extends = "metal_extreme" }
+"blues rock" = { extends = "blues_roots_country" }
+"garage rock" = { extends = "rock_punk_alternative" }
+"glam rock" = { extends = "rock_punk_alternative" }
+"goth rock" = { extends = "rock_punk_alternative" }
+"gothic metal" = { extends = "metal_extreme" }
+"industrial rock" = { extends = "rock_punk_alternative" }
+krautrock = { extends = "prog_math_complex" }
+"melodic death metal" = { extends = "metal_extreme" }
+"psychedelic rock" = { extends = "rock_punk_alternative" }
+psychobilly = { extends = "rock_punk_alternative" }
+"rock & roll" = { extends = "rock_punk_alternative" }
+rockabilly = { extends = "blues_roots_country" }
+"soft rock" = { extends = "rock_punk_alternative" }
+"southern rock" = { extends = "blues_roots_country" }
+"space rock" = { extends = "prog_math_complex" }
+surf = { extends = "rock_punk_alternative" }
+"symphonic metal" = { extends = "metal_extreme" }
+"symphonic rock" = { extends = "prog_math_complex" }
+"viking metal" = { extends = "metal_extreme" }
+deathcore = { extends = "metal_extreme" }
+deathrock = { extends = "rock_punk_alternative" }
+crust = { extends = "rock_punk_alternative" }
+powerviolence = { extends = "metal_extreme" }
+"hardcore punk" = { extends = "rock_punk_alternative" }
+"no wave" = { extends = "rock_punk_alternative" }
+"noise rock" = { extends = "rock_punk_alternative" }
+mathcore = { extends = "prog_math_complex" }
+"groove metal" = { extends = "metal_extreme" }
+"blackened death metal" = { extends = "metal_extreme" }
+"technical death metal" = { extends = "metal_extreme" }
+"depressive black metal" = { extends = "metal_extreme" }
+"pagan metal" = { extends = "metal_extreme" }
+"stoner metal" = { extends = "metal_extreme" }
+"symphonic black metal" = { extends = "metal_extreme" }
+"drone metal" = { extends = "metal_extreme" }
+"pop rock" = { extends = "rock_punk_alternative" }
+"arena rock" = { extends = "rock_punk_alternative" }
+beat = { extends = "rock_punk_alternative" }
+mod = { extends = "rock_punk_alternative" }
+"acid rock" = { extends = "rock_punk_alternative" }
+"pub rock" = { extends = "rock_punk_alternative" }
+"neo-prog" = { extends = "prog_math_complex" }
+coldwave = { extends = "rock_punk_alternative" }
+pornogrind = { extends = "metal_extreme" }
+goregrind = { extends = "metal_extreme" }
+"funk rock" = { extends = "funk_disco_slap" }
+d-beat = { extends = "rock_punk_alternative" }
+
+# ------------------------------------------------------------------------------
+# JAZZ STYLES
+# ------------------------------------------------------------------------------
+
+jazz = { extends = "jazz_swing_acoustic" }
+"acid jazz" = { extends = "jazz_swing_acoustic" }
+bebop = { extends = "jazz_swing_acoustic" }
+"cool jazz" = { extends = "jazz_swing_acoustic" }
+"gypsy jazz" = { extends = "jazz_swing_acoustic" }
+"hard bop" = { extends = "jazz_swing_acoustic" }
+"jazz fusion" = { extends = "prog_math_complex" }
+"latin jazz" = { extends = "latin_clave_syncopated" }
+"modal jazz" = { extends = "jazz_swing_acoustic" }
+"smooth jazz" = { extends = "soul_rnb_gospel" }
+swing = { extends = "jazz_swing_acoustic" }
+"avant-garde jazz" = { extends = "prog_math_complex" }
+"big band" = { extends = "jazz_swing_acoustic" }
+"contemporary jazz" = { extends = "jazz_swing_acoustic" }
+dixieland = { extends = "jazz_swing_acoustic" }
+"free jazz" = { extends = "prog_math_complex" }
+"free improvisation" = { extends = "prog_math_complex" }
+"jazz-funk" = { extends = "funk_disco_slap" }
+"jazz-rock" = { extends = "prog_math_complex" }
+modal = { extends = "jazz_swing_acoustic" }
+"post bop" = { extends = "jazz_swing_acoustic" }
+ragtime = { extends = "jazz_swing_acoustic" }
+"soul-jazz" = { extends = "soul_rnb_gospel" }
+"afro-cuban jazz" = { extends = "latin_clave_syncopated" }
+bop = { extends = "jazz_swing_acoustic" }
+"cape jazz" = { extends = "caribbean_afro_groove" }
+"free funk" = { extends = "funk_disco_slap" }
+"kansas city jazz" = { extends = "jazz_swing_acoustic" }
+"nu jazz" = { extends = "jazz_swing_acoustic" }
+"orchestral jazz" = { extends = "jazz_swing_acoustic" }
+scat = { extends = "jazz_swing_acoustic" }
+"third stream" = { extends = "jazz_swing_acoustic" }
+"trad jazz" = { extends = "jazz_swing_acoustic" }
+jazzdance = { extends = "jazz_swing_acoustic" }
+"ethno-jazz" = { extends = "jazz_swing_acoustic" }
+"jazz-pop" = { extends = "soul_rnb_gospel" }
+"strata-east" = { extends = "jazz_swing_acoustic" }
+marabi = { extends = "caribbean_afro_groove" }
+kwela = { extends = "caribbean_afro_groove" }
+
+# ------------------------------------------------------------------------------
+# FUNK, SOUL & R&B STYLES
+# ------------------------------------------------------------------------------
+
+funk = { extends = "funk_disco_slap" }
+disco = { extends = "funk_disco_slap" }
+"funk metal" = { extends = "funk_disco_slap" }
+gospel = { extends = "soul_rnb_gospel" }
+motown = { extends = "soul_rnb_gospel" }
+"neo-soul" = { extends = "soul_rnb_gospel" }
+"p-funk" = { extends = "funk_disco_slap" }
+"r&b" = { extends = "soul_rnb_gospel" }
+soul = { extends = "soul_rnb_gospel" }
+boogie = { extends = "funk_disco_slap" }
+"contemporary r&b" = { extends = "soul_rnb_gospel" }
+"free soul" = { extends = "soul_rnb_gospel" }
+"minneapolis sound" = { extends = "funk_disco_slap" }
+"rhythm & blues" = { extends = "blues_roots_country" }
+"new jack swing" = { extends = "soul_rnb_gospel" }
+go-go = { extends = "funk_disco_slap" }
+"bay area sound" = { extends = "funk_disco_slap" }
+"northern soul" = { extends = "soul_rnb_gospel" }
+"philly soul" = { extends = "soul_rnb_gospel" }
+"psychedelic soul" = { extends = "soul_rnb_gospel" }
+"quiet storm" = { extends = "soul_rnb_gospel" }
+"street funk" = { extends = "funk_disco_slap" }
+"swamp pop" = { extends = "blues_roots_country" }
+"deep funk" = { extends = "funk_disco_slap" }
+"funk carioca" = { extends = "four_on_floor_dance" }
+"disco-funk" = { extends = "funk_disco_slap" }
+"electro funk" = { extends = "four_on_floor_dance" }
+"contemporary gospel" = { extends = "soul_rnb_gospel" }
+"gospel choir" = { extends = "soul_rnb_gospel" }
+"traditional gospel" = { extends = "soul_rnb_gospel" }
+urban = { extends = "soul_rnb_gospel" }
+"street soul" = { extends = "soul_rnb_gospel" }
+"modern soul" = { extends = "soul_rnb_gospel" }
+"brit funk" = { extends = "funk_disco_slap" }
+"funk soul" = { extends = "funk_disco_slap" }
+
+# ------------------------------------------------------------------------------
+# HIP HOP STYLES
+# ------------------------------------------------------------------------------
+
+"hip hop" = { extends = "soul_rnb_gospel" }
+"boom bap" = { extends = "soul_rnb_gospel" }
+"g-funk" = { extends = "funk_disco_slap" }
+trap = { extends = "four_on_floor_dance" }
+"cloud rap" = { extends = "four_on_floor_dance" }
+conscious = { extends = "soul_rnb_gospel" }
+crunk = { extends = "four_on_floor_dance" }
+"east coast hip hop" = { extends = "soul_rnb_gospel" }
+gangsta = { extends = "funk_disco_slap" }
+"hardcore hip-hop" = { extends = "soul_rnb_gospel" }
+horrorcore = { extends = "soul_rnb_gospel" }
+hyphy = { extends = "four_on_floor_dance" }
+"jazzy hip-hop" = { extends = "jazz_swing_acoustic" }
+"miami bass" = { extends = "four_on_floor_dance" }
+"pop rap" = { extends = "soul_rnb_gospel" }
+"ragga hip hop" = { extends = "caribbean_afro_groove" }
+underground = { extends = "soul_rnb_gospel" }
+"uk drill" = { extends = "four_on_floor_dance" }
+bounce = { extends = "four_on_floor_dance" }
+"chopped and screwed" = { extends = "soul_rnb_gospel" }
+phonk = { extends = "four_on_floor_dance" }
+drill = { extends = "four_on_floor_dance" }
+"mumble rap" = { extends = "four_on_floor_dance" }
+"lo-fi hip hop" = { extends = "soul_rnb_gospel" }
+"southern hip hop" = { extends = "soul_rnb_gospel" }
+"west coast hip hop" = { extends = "funk_disco_slap" }
+snap = { extends = "four_on_floor_dance" }
+"trap metal" = { extends = "metal_extreme" }
+"latin trap" = { extends = "latin_clave_syncopated" }
+"political hip hop" = { extends = "soul_rnb_gospel" }
+nerdcore = { extends = "soul_rnb_gospel" }
+"instrumental hip hop" = { extends = "soul_rnb_gospel" }
+
+# ------------------------------------------------------------------------------
+# LATIN STYLES
+# ------------------------------------------------------------------------------
+
+afro-cuban = { extends = "latin_clave_syncopated" }
+bachata = { extends = "latin_clave_syncopated" }
+bolero = { extends = "latin_clave_syncopated" }
+"bossa nova" = { extends = "latin_clave_syncopated" }
+"cha-cha" = { extends = "latin_clave_syncopated" }
+cumbia = { extends = "latin_clave_syncopated" }
+lambada = { extends = "latin_clave_syncopated" }
+mambo = { extends = "latin_clave_syncopated" }
+merengue = { extends = "latin_clave_syncopated" }
+mpb = { extends = "latin_clave_syncopated" }
+neotango = { extends = "latin_clave_syncopated" }
+salsa = { extends = "latin_clave_syncopated" }
+samba = { extends = "latin_clave_syncopated" }
+songo = { extends = "latin_clave_syncopated" }
+"son cubano" = { extends = "latin_clave_syncopated" }
+tango = { extends = "latin_clave_syncopated" }
+timba = { extends = "latin_clave_syncopated" }
+boogaloo = { extends = "latin_clave_syncopated" }
+charanga = { extends = "latin_clave_syncopated" }
+chicha = { extends = "latin_clave_syncopated" }
+compas = { extends = "caribbean_afro_groove" }
+danzon = { extends = "latin_clave_syncopated" }
+flamenco = { extends = "latin_clave_syncopated" }
+"forró" = { extends = "latin_clave_syncopated" }
+"guaguancó" = { extends = "latin_clave_syncopated" }
+mariachi = { extends = "blues_roots_country" }
+"musica criolla" = { extends = "latin_clave_syncopated" }
+"norteño" = { extends = "blues_roots_country" }
+ranchera = { extends = "blues_roots_country" }
+reggaeton = { extends = "caribbean_afro_groove" }
+tejano = { extends = "blues_roots_country" }
+son = { extends = "latin_clave_syncopated" }
+vallenato = { extends = "latin_clave_syncopated" }
+zamba = { extends = "latin_clave_syncopated" }
+"axé" = { extends = "latin_clave_syncopated" }
+"baião" = { extends = "latin_clave_syncopated" }
+choro = { extends = "latin_clave_syncopated" }
+cuarteto = { extends = "latin_clave_syncopated" }
+guarania = { extends = "latin_clave_syncopated" }
+"latin pop" = { extends = "latin_clave_syncopated" }
+"nueva cancion" = { extends = "blues_roots_country" }
+pachanga = { extends = "latin_clave_syncopated" }
+porro = { extends = "latin_clave_syncopated" }
+"son montuno" = { extends = "latin_clave_syncopated" }
+plena = { extends = "latin_clave_syncopated" }
+
+# ------------------------------------------------------------------------------
+# REGGAE & CARIBBEAN STYLES
+# ------------------------------------------------------------------------------
+
+reggae = { extends = "caribbean_afro_groove" }
+afrobeat = { extends = "caribbean_afro_groove" }
+afrobeats = { extends = "caribbean_afro_groove" }
+calypso = { extends = "caribbean_afro_groove" }
+dancehall = { extends = "caribbean_afro_groove" }
+dub = { extends = "caribbean_afro_groove" }
+kizomba = { extends = "caribbean_afro_groove" }
+"lovers rock" = { extends = "caribbean_afro_groove" }
+rocksteady = { extends = "caribbean_afro_groove" }
+ska = { extends = "caribbean_afro_groove" }
+soca = { extends = "caribbean_afro_groove" }
+zouk = { extends = "caribbean_afro_groove", rhythmic_grid = "16th_syncopated", rhythmic_anchor = { pattern = "tresillo_cinquillo", lock_strength = "moderate" }, cross_stem_validation = { drums = { rule_key = "zouk_tresillo_sync", alignment_threshold_ms = 50.0 } } }
+ragga = { extends = "caribbean_afro_groove" }
+"reggae-pop" = { extends = "caribbean_afro_groove" }
+"roots reggae" = { extends = "caribbean_afro_groove" }
+mento = { extends = "caribbean_afro_groove" }
+rockers = { extends = "caribbean_afro_groove" }
+"dancehall reggae" = { extends = "caribbean_afro_groove" }
+rub-a-dub = { extends = "caribbean_afro_groove" }
+"lovers dub" = { extends = "caribbean_afro_groove" }
+"reggae gospel" = { extends = "caribbean_afro_groove" }
+steppers = { extends = "caribbean_afro_groove" }
+skank = { extends = "caribbean_afro_groove" }
+"ska punk" = { extends = "rock_punk_alternative" }
+"2-tone" = { extends = "caribbean_afro_groove" }
+
+# ------------------------------------------------------------------------------
+# BLUES STYLES
+# ------------------------------------------------------------------------------
+
+blues = { extends = "blues_roots_country" }
+"chicago blues" = { extends = "blues_roots_country" }
+"delta blues" = { extends = "blues_roots_country" }
+"electric blues" = { extends = "blues_roots_country" }
+"texas blues" = { extends = "blues_roots_country" }
+"boogie woogie" = { extends = "blues_roots_country" }
+"country blues" = { extends = "blues_roots_country" }
+"harmonica blues" = { extends = "blues_roots_country" }
+"jump blues" = { extends = "blues_roots_country" }
+"louisiana blues" = { extends = "blues_roots_country" }
+"modern electric blues" = { extends = "blues_roots_country" }
+"piano blues" = { extends = "blues_roots_country" }
+"east coast blues" = { extends = "blues_roots_country" }
+"piedmont blues" = { extends = "blues_roots_country" }
+"swamp blues" = { extends = "blues_roots_country" }
+"hill country blues" = { extends = "blues_roots_country" }
+"memphis blues" = { extends = "blues_roots_country" }
+"acoustic blues" = { extends = "blues_roots_country" }
+"urban blues" = { extends = "blues_roots_country" }
+"gospel blues" = { extends = "blues_roots_country" }
+
+# ------------------------------------------------------------------------------
+# FOLK, WORLD & COUNTRY STYLES
+# ------------------------------------------------------------------------------
+
+folk = { extends = "blues_roots_country" }
+country = { extends = "blues_roots_country" }
+americana = { extends = "blues_roots_country" }
+bluegrass = { extends = "blues_roots_country" }
+"appalachian music" = { extends = "blues_roots_country" }
+cajun = { extends = "blues_roots_country" }
+celtic = { extends = "blues_roots_country" }
+"country rock" = { extends = "blues_roots_country" }
+fado = { extends = "blues_roots_country" }
+"folk rock" = { extends = "rock_punk_alternative" }
+"honky tonk" = { extends = "blues_roots_country" }
+"indian classical" = { extends = "prog_math_complex" }
+highlife = { extends = "caribbean_afro_groove" }
+klezmer = { extends = "jazz_swing_acoustic" }
+neofolk = { extends = "blues_roots_country" }
+nordic = { extends = "blues_roots_country" }
+polka = { extends = "blues_roots_country" }
+"sea shanties" = { extends = "blues_roots_country" }
+"singer-songwriter" = { extends = "blues_roots_country" }
+soukous = { extends = "caribbean_afro_groove" }
+"texas country" = { extends = "blues_roots_country" }
+zydeco = { extends = "blues_roots_country" }
+"western swing" = { extends = "blues_roots_country" }
+hawaiian = { extends = "blues_roots_country" }
+gamelan = { extends = "prog_math_complex" }
+rai = { extends = "caribbean_afro_groove" }
+romani = { extends = "jazz_swing_acoustic" }
+chanson = { extends = "jazz_swing_acoustic" }
+schlager = { extends = "four_on_floor_dance" }
+trot = { extends = "blues_roots_country" }
+dangdut = { extends = "caribbean_afro_groove" }
+enka = { extends = "blues_roots_country" }
+ghazal = { extends = "jazz_swing_acoustic" }
+qawwali = { extends = "prog_math_complex" }
+
+# ------------------------------------------------------------------------------
+# POP, CLASSICAL, STAGE & SCREEN STYLES
+# ------------------------------------------------------------------------------
+
+pop = { extends = "four_on_floor_dance" }
+"synth-pop" = { extends = "four_on_floor_dance" }
+synthwave = { extends = "four_on_floor_dance" }
+ballad = { extends = "soul_rnb_gospel" }
+bubblegum = { extends = "four_on_floor_dance" }
+"city pop" = { extends = "funk_disco_slap" }
+j-pop = { extends = "four_on_floor_dance" }
+k-pop = { extends = "four_on_floor_dance" }
+"kayōkyoku" = { extends = "four_on_floor_dance" }
+cantopop = { extends = "four_on_floor_dance" }
+mandopop = { extends = "four_on_floor_dance" }
+"teen pop" = { extends = "four_on_floor_dance" }
+"baroque pop" = { extends = "jazz_swing_acoustic" }
+"brill building" = { extends = "soul_rnb_gospel" }
+"chamber pop" = { extends = "jazz_swing_acoustic" }
+baroque = { extends = "jazz_swing_acoustic" }
+impressionist = { extends = "jazz_swing_acoustic" }
+medieval = { extends = "jazz_swing_acoustic" }
+"neo-classical" = { extends = "prog_math_complex" }
+"neo-romantic" = { extends = "jazz_swing_acoustic" }
+renaissance = { extends = "jazz_swing_acoustic" }
+romantic = { extends = "jazz_swing_acoustic" }
+opera = { extends = "jazz_swing_acoustic" }
+choral = { extends = "jazz_swing_acoustic" }

@@ -1,0 +1,79 @@
+[latin_clave_syncopated]
+micro_placement_policy = "push"
+placement_shift_percentage = 2.5
+swing_grid_type = "none"
+grid_hysteresis_ms = 10.0
+beat_onset_deviation_allowance_ms = 30.0
+tempo_drift_smoothing_factor = 0.95
+
+[caribbean_afro_groove]
+micro_placement_policy = "laid_back"
+placement_shift_percentage = -8.0
+swing_grid_type = "even_lazy"
+grid_hysteresis_ms = 25.0
+beat_onset_deviation_allowance_ms = 60.0
+tempo_drift_smoothing_factor = 0.7
+
+[funk_disco_slap]
+micro_placement_policy = "pocket"
+placement_shift_percentage = -2.0
+swing_grid_type = "none"
+grid_hysteresis_ms = 12.0
+beat_onset_deviation_allowance_ms = 35.0
+tempo_drift_smoothing_factor = 0.9
+
+[soul_rnb_gospel]
+micro_placement_policy = "laid_back"
+placement_shift_percentage = -5.0
+swing_grid_type = "swung_16th"
+grid_hysteresis_ms = 20.0
+beat_onset_deviation_allowance_ms = 50.0
+tempo_drift_smoothing_factor = 0.8
+
+[jazz_swing_acoustic]
+micro_placement_policy = "laid_back"
+placement_shift_percentage = -6.5
+swing_grid_type = "triplet_swing"
+grid_hysteresis_ms = 18.0
+beat_onset_deviation_allowance_ms = 45.0
+tempo_drift_smoothing_factor = 0.75
+
+[blues_roots_country]
+micro_placement_policy = "pocket"
+placement_shift_percentage = -1.5
+swing_grid_type = "shuffle_triplet"
+grid_hysteresis_ms = 15.0
+beat_onset_deviation_allowance_ms = 40.0
+tempo_drift_smoothing_factor = 0.85
+
+[rock_punk_alternative]
+micro_placement_policy = "push"
+placement_shift_percentage = 4.0
+swing_grid_type = "none"
+grid_hysteresis_ms = 15.0
+beat_onset_deviation_allowance_ms = 40.0
+tempo_drift_smoothing_factor = 0.9
+
+[metal_extreme]
+micro_placement_policy = "quantized_rigid"
+placement_shift_percentage = 0.0
+swing_grid_type = "none"
+grid_hysteresis_ms = 5.0
+beat_onset_deviation_allowance_ms = 15.0
+tempo_drift_smoothing_factor = 0.99
+
+[prog_math_complex]
+micro_placement_policy = "quantized_rigid"
+placement_shift_percentage = 0.0
+swing_grid_type = "none"
+grid_hysteresis_ms = 8.0
+beat_onset_deviation_allowance_ms = 20.0
+tempo_drift_smoothing_factor = 0.95
+
+[four_on_floor_dance]
+micro_placement_policy = "quantized_rigid"
+placement_shift_percentage = 0.0
+swing_grid_type = "none"
+grid_hysteresis_ms = 3.0
+beat_onset_deviation_allowance_ms = 10.0
+tempo_drift_smoothing_factor = 1.0

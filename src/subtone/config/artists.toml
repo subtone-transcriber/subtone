@@ -1,0 +1,188 @@
+ ["Bobby Valentin"]
+ extends = "salsa"
+
+ ["Bobby Valentin".features]
+ ghost_notes = true
+ slap_pop = false
+ tapped_harmonics = false
+
+ ["Bobby Valentin".costs]
+ string_crossing_fatigue_cost = 2.5
+
+ ["Bobby Valentin".micro_timing]
+ micro_placement_policy = "push"
+ placement_shift_percentage = 3.0
+
+ ["Bobby Valentin".fretboard_navigation]
+ box_shape_fret_span = 4
+ octave_preference_register = "low_sub_bass"
+
+ ["Aston Barrett"]
+ extends = "reggae"
+
+ ["Aston Barrett".features]
+ ghost_notes = true
+ slap_pop = false
+ palm_muting = true
+
+ ["Aston Barrett".costs]
+ position_shift_multiplier = 3.0
+
+ ["Aston Barrett".micro_timing]
+ micro_placement_policy = "laid_back"
+ placement_shift_percentage = -10.0
+
+ ["Aston Barrett".fretboard_navigation]
+ box_shape_fret_span = 3
+ open_string_allowance_policy = "always_avoid"
+
+ ["Bootsy Collins"]
+ extends = "funk"
+
+ ["Bootsy Collins".features]
+ ghost_notes = true
+ slap_pop = true
+ envelope_filter = true
+
+ ["Bootsy Collins".costs]
+ open_string_bonus = -2.0
+
+ ["Bootsy Collins".micro_timing]
+ micro_placement_policy = "pocket"
+ placement_shift_percentage = -3.0
+
+ ["Bootsy Collins".fretboard_navigation]
+ box_shape_fret_span = 5
+ octave_preference_register = "mid_register"
+
+ ["James Jamerson"]
+ extends = "soul"
+
+ ["James Jamerson".features]
+ ghost_notes = true
+ palm_muting = true
+ chromatic_runs = true
+
+ ["James Jamerson".costs]
+ string_crossing_fatigue_cost = 2.0
+
+ ["James Jamerson".micro_timing]
+ micro_placement_policy = "laid_back"
+ placement_shift_percentage = -4.0
+
+ ["James Jamerson".fretboard_navigation]
+ box_shape_fret_span = 4
+ open_string_allowance_policy = "prefer_closed_for_muting"
+
+ ["Paul Chambers"]
+ extends = "swing"
+
+ ["Paul Chambers".features]
+ ghost_notes = false
+ walking_bass_line = true
+ arco_bowing = true
+
+ ["Paul Chambers".costs]
+ fret_stretch_penalty = 12.0
+
+ ["Paul Chambers".micro_timing]
+ micro_placement_policy = "laid_back"
+ placement_shift_percentage = -5.0
+
+ ["Paul Chambers".fretboard_navigation]
+ box_shape_fret_span = 4
+ open_string_allowance_policy = "allow_open_for_walking_resonance"
+
+ ["Willie Dixon"]
+ extends = "blues"
+
+ ["Willie Dixon".features]
+ ghost_notes = true
+ double_stops = true
+
+ ["Willie Dixon".costs]
+ position_shift_multiplier = 2.2
+
+ ["Willie Dixon".micro_timing]
+ micro_placement_policy = "pocket"
+ placement_shift_percentage = -2.0
+
+ ["Willie Dixon".fretboard_navigation]
+ box_shape_fret_span = 4
+ open_string_allowance_policy = "allow_open_for_walking_resonance"
+
+ ["Flea"]
+ extends = "rock"
+
+ ["Flea".features]
+ ghost_notes = true
+ slap_pop = true
+ aggressive_plucking = true
+
+ ["Flea".costs]
+ position_shift_multiplier = 3.0
+
+ ["Flea".micro_timing]
+ micro_placement_policy = "push"
+ placement_shift_percentage = 5.0
+
+ ["Flea".fretboard_navigation]
+ box_shape_fret_span = 5
+ open_string_allowance_policy = "prefer_open_for_low_chug"
+
+ ["Cliff Burton"]
+ extends = "thrash metal"
+
+ ["Cliff Burton".features]
+ ghost_notes = false
+ distortion = true
+ two_finger_tapping = true
+
+ ["Cliff Burton".costs]
+ fret_stretch_penalty = 15.0
+
+ ["Cliff Burton".micro_timing]
+ micro_placement_policy = "quantized_rigid"
+ placement_shift_percentage = 0.0
+
+ ["Cliff Burton".fretboard_navigation]
+ box_shape_fret_span = 4
+ open_string_allowance_policy = "prefer_open_for_low_chug"
+
+ ["Geddy Lee"]
+ extends = "progressive rock"
+
+ ["Geddy Lee".features]
+ ghost_notes = true
+ flam_notes = true
+ rapid_three_finger_plucking = true
+
+ ["Geddy Lee".costs]
+ string_crossing_fatigue_cost = 3.5
+
+ ["Geddy Lee".micro_timing]
+ micro_placement_policy = "quantized_rigid"
+ placement_shift_percentage = 0.0
+
+ ["Geddy Lee".fretboard_navigation]
+ box_shape_fret_span = 5
+ open_string_allowance_policy = "prefer_closed_for_muting"
+
+ ["Bernard Edwards"]
+ extends = "pop"
+
+ ["Bernard Edwards".features]
+ ghost_notes = true
+ chuck_plucking = true
+ slap_pop = false
+
+ ["Bernard Edwards".costs]
+ position_shift_multiplier = 3.2
+
+ ["Bernard Edwards".micro_timing]
+ micro_placement_policy = "quantized_rigid"
+ placement_shift_percentage = 0.0
+
+ ["Bernard Edwards".fretboard_navigation]
+ box_shape_fret_span = 4
+ open_string_allowance_policy = "always_avoid"

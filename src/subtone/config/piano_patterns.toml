@@ -1,0 +1,80 @@
+[latin_clave_syncopated]
+style = "salsa_montuno"
+typical_subdivisions = [
+    0.5,
+    1.5,
+    2.5,
+    3.5,
+]
+
+[latin_clave_syncopated.rules]
+align_with_chord_changes = true
+snap_dissonant_notes_to_triads = true
+sync_with_piano_syncopation = true
+
+[jazz_swing_acoustic]
+style = "rootless_voicings"
+typical_subdivisions = [
+    1.0,
+    3.0,
+]
+
+[jazz_swing_acoustic.rules]
+bass_must_provide_roots_on_downbeats = true
+resolve_clashing_tensions = true
+
+[four_on_floor_dance]
+style = "synth_arpeggiator_pads"
+typical_subdivisions = [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+    2.25,
+    2.5,
+    2.75,
+    3.0,
+    3.25,
+    3.5,
+    3.75,
+]
+
+[four_on_floor_dance.rules]
+pedal_point_reinforce = true
+unison_synth_lock = true
+filter_bass_frequency_bleed_from_keys = true
+
+[soul_rnb_gospel]
+style = "gospel_rhythm_chords"
+typical_subdivisions = [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+]
+
+[soul_rnb_gospel.rules]
+match_piano_lowest_voice_leading = true
+suppress_high_register_bleed = true
+
+[blues_roots_country]
+style = "boogie_woogie_shuffle"
+typical_subdivisions = [
+    0.0,
+    0.66,
+    1.0,
+    1.66,
+    2.0,
+    2.66,
+    3.0,
+    3.66,
+]
+
+[blues_roots_country.rules]
+mirror_piano_left_hand_walking = true
+snap_to_blues_scale = true
