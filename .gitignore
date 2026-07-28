@@ -71,3 +71,4 @@ htmlcov/
 output_bass
 testoutput*
 midi
+old_midi/
