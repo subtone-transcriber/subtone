@@ -4,6 +4,7 @@ from subtone.schemas import AudioEvent, Genre, Level, MeasureChunk, Note, Rhythm
 from subtone.dsp import (
     stage1_stem_separation_and_audio_to_midi,
     stage2_multistem_f0_tracking,
+    stage2b_timbral_spectral_and_dynamics_enrichment,
     stage3_drum_percussive_grid_mining,
     stage4_frame_to_symbolic_bounding,
     stage5_drum_pocket_and_groove_audit,
@@ -48,6 +49,7 @@ __all__ = [
     "process_audio_target_to_events",
     "stage1_stem_separation_and_audio_to_midi",
     "stage2_multistem_f0_tracking",
+    "stage2b_timbral_spectral_and_dynamics_enrichment",
     "stage3_drum_percussive_grid_mining",
     "stage4_frame_to_symbolic_bounding",
     "stage5_drum_pocket_and_groove_audit",

@@ -359,6 +359,7 @@ class AudioTranscriptionPipeline:
         from subtone.dsp import (
             stage1_stem_separation_and_audio_to_midi,
             stage2_multistem_f0_tracking,
+            stage2b_timbral_spectral_and_dynamics_enrichment,
             stage3_drum_percussive_grid_mining,
             stage4_frame_to_symbolic_bounding,
             stage5_drum_pocket_and_groove_audit,
@@ -423,6 +424,22 @@ class AudioTranscriptionPipeline:
         print(f"  ├─ Active Primary Stem: '{primary_key}'")
         print(f"  ├─ Selected Tuning Profile: '{tuning_type}' (fmin={fmin_hz:.1f} Hz)")
         print(f"  └─ Dynamic F0 Tracked Events: {len(event_streams.get(primary_key, {}).get('events', []))} events")
+
+        print("\n[Stage 2b: Timbral Fingerprinting, Articulation & Dynamics Enrichment]")
+        print("  • Inharmonicity (B) & Spectral Tilt -> Per-String Confidence")
+        print("  • Attack Envelope, Pitch Contour & Psychoacoustic Loudness Mapping")
+
+        event_streams = stage2b_timbral_spectral_and_dynamics_enrichment(
+            event_streams=event_streams,
+            primary_key=primary_key,
+            stem_folder=cached_events_path,
+            sr=DEFAULT_SAMPLE_RATE,
+            genre_config=genre_config,
+        )
+        enriched_events = event_streams.get(primary_key, {}).get("events", [])
+        strings_resolved = sum(1 for e in enriched_events if getattr(e, "string_confidence", None))
+        print(f"  ├─ Events With Resolved String Confidence: {strings_resolved} / {len(enriched_events)}")
+        print("  └─ Skipped Gracefully If No Raw Stem Audio Is Available")
 
         print("\n[Stage 3: Genre-Aware Percussive Grid & Rhythmic Anchor Mining [DRUMS]]")
         print("  • Transient Energy Mining (Kick/Snare/Hi-Hat Maps)")

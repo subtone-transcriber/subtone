@@ -37,6 +37,7 @@ from subtone.settings import (
     DEFAULT_SAMPLE_RATE,
     DEFAULT_TIME_SIGNATURE,
     DEFAULT_TUNING_TYPE,
+    MAX_FRETBOARD_FRETS,
 )
 
 logger = logging.getLogger(__name__)
@@ -862,6 +863,434 @@ def hps_refine_pitch(frame_spec, fft_freqs, fmin=18.0, fmax=110.0, num_harmonics
         best_bin = np.argmax(hps)
         return fft_freqs[best_bin], hps[best_bin]
     return 0.0, 0.0
+
+
+# --- Timbral Fingerprinting, Articulation Classification & Dynamics Enrichment ---
+#
+# The functions below are additive: they never change *which* note/pitch was
+# detected, only the descriptive metadata attached to each AudioEvent. That
+# metadata resolves the "same pitch, many strings" ambiguity before the
+# biomechanical fretboard solver runs, classifies expressive technique that a
+# static onset/offset pair can't capture, maps raw amplitude onto perceived
+# loudness, and flags reverb tails / cross-stem bleed so they aren't read as
+# genuine sustain. All functions degrade to harmless no-op defaults when
+# numpy/librosa or raw audio are unavailable, matching this module's existing
+# optional-dependency convention.
+
+
+def estimate_harmonic_partials(audio_y, sr, f0_hz, num_harmonics=6, n_fft=4096):
+    """
+    Locates the true frequency of the first `num_harmonics` overtones of f0_hz via
+    parabolic-interpolated STFT peak-picking near each expected integer multiple.
+    Used by compute_inharmonicity_coefficient to measure how sharp real overtones
+    stretch relative to a perfectly harmonic series.
+    """
+    if audio_y is None or not f0_hz or f0_hz <= 0 or np is None or librosa is None:
+        return []
+
+    spec = compute_stft_magnitude(audio_y, n_fft=n_fft, hop_length=max(256, n_fft // 4))
+    mag = np.mean(spec, axis=1)
+    freqs = compute_fft_frequencies(sr=sr, n_fft=n_fft)
+    bin_hz = freqs[1] - freqs[0] if len(freqs) > 1 else sr / n_fft
+
+    partials = []
+    search_bins = max(1, int(round((bin_hz * 3) / bin_hz)))
+    for n in range(1, num_harmonics + 1):
+        expected_hz = f0_hz * n
+        if expected_hz >= freqs[-1] - bin_hz:
+            break
+        center_bin = int(round(expected_hz / bin_hz))
+        lo, hi = max(1, center_bin - search_bins), min(len(mag) - 2, center_bin + search_bins)
+        if hi <= lo:
+            continue
+        peak_bin = lo + int(np.argmax(mag[lo : hi + 1]))
+        a, b, c = mag[peak_bin - 1], mag[peak_bin], mag[peak_bin + 1]
+        denom = a - 2 * b + c
+        delta = 0.5 * (a - c) / denom if abs(denom) > 1e-12 else 0.0
+        partials.append(float((peak_bin + delta) * bin_hz))
+    return partials
+
+
+def compute_inharmonicity_coefficient(audio_y, sr, f0_hz, num_harmonics=6) -> float:
+    """
+    Estimates the string stiffness coefficient B from the real-string overtone
+    model fn ≈ n*f0*sqrt(1 + B*n^2). Thicker/lower-tension strings exhibit a
+    higher B, so measuring how sharp the upper partials stretch helps
+    discriminate a low fretted note high up a thick string from the same
+    pitch played open/low on a thinner string.
+    """
+    if np is None:
+        return 0.0
+    partials = estimate_harmonic_partials(audio_y, sr, f0_hz, num_harmonics=num_harmonics)
+    if len(partials) < 3 or not f0_hz or f0_hz <= 0:
+        return 0.0
+
+    # (fn / (n*f0))^2 - 1 ≈ B * n^2 -- solve for B via least squares through the origin.
+    ns = np.arange(1, len(partials) + 1, dtype=float)
+    ratios = np.array(partials) / (ns * f0_hz)
+    y_vals = np.clip(ratios**2 - 1.0, -0.5, 5.0)
+    x_vals = ns**2
+    denom = float(np.dot(x_vals, x_vals))
+    if denom <= 1e-12:
+        return 0.0
+    return float(max(0.0, np.dot(x_vals, y_vals) / denom))
+
+
+def compute_spectral_tilt(audio_y, sr, n_fft=2048) -> float:
+    """
+    Fits the dB/octave slope of the log-magnitude spectral envelope. A bright,
+    overtone-rich open string sits close to 0 dB/oct; a darker, heavily-damped
+    note fretted high on a thinner string tilts more steeply negative. Used
+    alongside inharmonicity as a second, independent string-discrimination cue.
+    """
+    if audio_y is None or np is None or librosa is None:
+        return 0.0
+    spec = compute_stft_magnitude(audio_y, n_fft=n_fft, hop_length=n_fft // 4)
+    mag = np.mean(spec, axis=1)
+    freqs = compute_fft_frequencies(sr=sr, n_fft=n_fft)
+
+    mask = freqs > 20.0
+    if int(np.sum(mask)) < 8:
+        return 0.0
+    log_f = np.log2(freqs[mask])
+    log_m = 20.0 * np.log10(np.clip(mag[mask], 1e-8, None))
+    slope, _ = np.polyfit(log_f, log_m, 1)
+    return float(slope)
+
+
+def classify_source_string(
+    pitch_midi: int,
+    inharmonicity_b: float,
+    spectral_tilt_db_oct: float,
+    tuning_type: str = DEFAULT_TUNING_TYPE,
+) -> tuple[int | None, dict[int, float]]:
+    """
+    Scores every string capable of producing `pitch_midi` under the given tuning
+    and returns (best_string_index, {string_index: confidence}). Candidate
+    strings are ranked on how well their register-appropriate inharmonicity and
+    brightness expectations match the measured B and spectral tilt: thicker/
+    lower strings carry higher expected B, and higher fret positions on a given
+    string trend darker (more negative tilt).
+    """
+    from subtone.settings import FRETBOARD_TUNING_PROFILES
+
+    open_midis = FRETBOARD_TUNING_PROFILES.get(tuning_type, FRETBOARD_TUNING_PROFILES[DEFAULT_TUNING_TYPE])
+    candidates = [
+        (s_idx, pitch_midi - open_midi)
+        for s_idx, open_midi in enumerate(open_midis)
+        if 0 <= (pitch_midi - open_midi) <= MAX_FRETBOARD_FRETS
+    ]
+    if not candidates:
+        return None, {}
+    if len(candidates) == 1:
+        return candidates[0][0], {candidates[0][0]: 1.0}
+
+    num_strings = len(open_midis)
+    scores = {}
+    for s_idx, fret in candidates:
+        # Lower-indexed (thicker/lower) strings expect higher B; index is
+        # normalized so the comparison scales across 4/5/6-string tunings.
+        expected_b = 0.00015 * (1.0 - (s_idx / max(1, num_strings - 1))) + 0.00002
+        expected_tilt = -2.0 - (fret * 0.35)  # darker (more negative) higher up the neck
+        b_error = abs(inharmonicity_b - expected_b) / (expected_b + 1e-6)
+        tilt_error = abs(spectral_tilt_db_oct - expected_tilt) / 6.0
+        scores[s_idx] = -(b_error + tilt_error)
+
+    # Softmax the (negative-error) scores into per-string confidences.
+    if np is not None:
+        vals = np.array(list(scores.values()))
+        exp_vals = np.exp(vals - np.max(vals))
+        probs = exp_vals / np.sum(exp_vals)
+        confidence = {s: float(p) for s, p in zip(scores.keys(), probs)}
+    else:
+        best = max(scores.values())
+        confidence = {s: (1.0 if v == best else 0.0) for s, v in scores.items()}
+
+    best_string = max(confidence, key=confidence.get)
+    return best_string, confidence
+
+
+def classify_attack_envelope(audio_y, sr, onset_time: float, pre_roll=0.02, post_roll=0.05) -> tuple[str, float]:
+    """
+    Classifies whether a note's onset is a re-plucked/re-picked attack or a
+    legato hammer-on/pull-off by measuring the steepness of the amplitude rise
+    around the onset. A plucked note has a fast, high-amplitude transient; a
+    hammer-on or pull-off has no restrike and instead shows a smooth ramp from
+    the preceding note's envelope. Returns (label, normalized_slope 0..1).
+    """
+    if audio_y is None or np is None:
+        return "unknown", 1.0
+
+    pre_n = max(1, int(pre_roll * sr))
+    post_n = max(1, int(post_roll * sr))
+    center = int(onset_time * sr)
+    lo, hi = max(0, center - pre_n), min(len(audio_y), center + post_n)
+    if hi - lo < 8:
+        return "unknown", 1.0
+
+    window = audio_y[lo:hi]
+    envelope = np.abs(window)
+    smoothed = envelope if len(envelope) < 5 else np.convolve(envelope, np.ones(5) / 5.0, mode="same")
+
+    pre_level = float(np.mean(smoothed[: max(1, pre_n // 2)]))
+    peak_level = float(np.max(smoothed))
+    if peak_level <= 1e-6:
+        return "unknown", 0.0
+
+    rise_span = max(1, int(0.015 * sr))
+    peak_idx = int(np.argmax(smoothed))
+    rise_start = max(0, peak_idx - rise_span)
+    rise_slope = (smoothed[peak_idx] - smoothed[rise_start]) / max(1, peak_idx - rise_start)
+    normalized_slope = float(np.clip(rise_slope / (peak_level / rise_span + 1e-9), 0.0, 1.0))
+
+    dynamic_jump = (peak_level - pre_level) / peak_level
+    if normalized_slope > 0.45 and dynamic_jump > 0.4:
+        return "pluck", normalized_slope
+    return "legato", normalized_slope
+
+
+def track_continuous_pitch_contour(audio_y, sr, start_time: float, end_time: float, ref_f0_hz: float) -> list[float]:
+    """
+    Tracks continuous (unquantized) pitch across a note's duration and returns
+    it as cents deviation from `ref_f0_hz`. A smooth, sustained upward or
+    downward drift indicates a pitch bend; a discrete jump that lands on
+    another fretted pitch indicates a portamento slide (see
+    classify_pitch_gesture). Unlike the coarse per-note pitch used for
+    transcription, this samples at hop-length resolution.
+    """
+    if audio_y is None or np is None or librosa is None or not ref_f0_hz or ref_f0_hz <= 0:
+        return []
+
+    start_sample, end_sample = int(start_time * sr), int(end_time * sr)
+    if end_sample - start_sample < 1024:
+        return []
+
+    segment = audio_y[start_sample:end_sample]
+    f0_track, _, voiced_probs = run_pyin_pitch_tracking(
+        segment,
+        sr,
+        fmin=max(18.0, ref_f0_hz * 0.5),
+        fmax=ref_f0_hz * 2.5,
+        frame_length=2048,
+        hop_length=256,
+    )
+    if f0_track is None:
+        return []
+
+    cents = []
+    for hz, conf in zip(f0_track, voiced_probs if voiced_probs is not None else []):
+        if hz is None or (isinstance(hz, float) and np.isnan(hz)) or conf < 0.5:
+            continue
+        cents.append(float(1200.0 * np.log2(hz / ref_f0_hz)))
+    return cents
+
+
+def classify_pitch_gesture(pitch_contour_cents: list[float], crosses_fret_boundary: bool = False) -> str:
+    """
+    Interprets a tracked pitch contour as "bend", "slide", or "none". A bend
+    stays on a single string/fret so it never needs a fret change; a slide's
+    contour covers a comparable span but is only realizable by crossing frets.
+    """
+    if not pitch_contour_cents or len(pitch_contour_cents) < 3:
+        return "none"
+    span = max(pitch_contour_cents) - min(pitch_contour_cents)
+    if span < 25.0:
+        return "none"
+    return "slide" if crosses_fret_boundary else "bend"
+
+
+def compute_perceptual_loudness_lufs(audio_y, sr) -> float:
+    """
+    Approximates integrated loudness in LUFS (ITU-R BS.1770 style): a
+    high-pass "K-weighting" pre-filter followed by mean-square energy in dB.
+    Applying this instead of raw RMS/amplitude matters most in the low
+    register, since the Fletcher-Munson equal-loudness contours mean a bass
+    note needs substantially more acoustic energy than a mid-range note to be
+    perceived as equally loud -- raw-RMS velocity mapping under-represents it.
+    """
+    if audio_y is None or np is None or len(audio_y) == 0:
+        return -23.0
+
+    if signal is not None and butter is not None and sosfiltfilt is not None:
+        try:
+            # Simplified K-weighting: a high-pass shelf approximating BS.1770's
+            # RLB pre-filter, attenuating sub-100Hz rumble before energy integration.
+            sos = butter(2, 100.0 / (sr / 2.0), btype="highpass", output="sos")
+            weighted = sosfiltfilt(sos, audio_y)
+        except (ValueError, RuntimeError):
+            weighted = audio_y
+    else:
+        weighted = audio_y
+
+    mean_square = float(np.mean(np.square(weighted))) + 1e-12
+    return float(-0.691 + 10.0 * np.log10(mean_square))
+
+
+def estimate_reverb_tail_confidence(audio_y, sr, note_end_time: float, search_window=0.4) -> float:
+    """
+    Estimates the probability that energy trailing after `note_end_time` is a
+    decaying room reflection (reverb/late-reflection tail) rather than a
+    genuinely sustained pitch. Fits an exponential decay envelope (T60-style)
+    over the tail window and checks spectral flatness: reverb tails decay
+    smoothly and broaden spectrally, while a real sustained note holds its
+    fundamental's spectral peak. Returns 0.0 (no tail / real sustain) to 1.0
+    (high-confidence reverb tail).
+    """
+    if audio_y is None or np is None or librosa is None:
+        return 0.0
+
+    start_sample = int(note_end_time * sr)
+    end_sample = min(len(audio_y), start_sample + int(search_window * sr))
+    if end_sample - start_sample < 1024:
+        return 0.0
+
+    tail = audio_y[start_sample:end_sample]
+    rms = compute_rms(tail, frame_length=1024, hop_length=256)
+    if len(rms) < 4 or rms[0] <= 1e-6:
+        return 0.0
+
+    # Fit log-energy decay slope; a clean exponential decay (high R^2) with a
+    # broadband (flat) spectrum is characteristic of a reverberant tail.
+    log_rms = np.log(np.clip(rms, 1e-8, None))
+    t_axis = np.arange(len(log_rms), dtype=float)
+    slope, intercept = np.polyfit(t_axis, log_rms, 1)
+    predicted = slope * t_axis + intercept
+    ss_res = float(np.sum((log_rms - predicted) ** 2))
+    ss_tot = float(np.sum((log_rms - np.mean(log_rms)) ** 2)) + 1e-9
+    decay_fit_r2 = max(0.0, 1.0 - ss_res / ss_tot)
+
+    flatness = float(np.mean(compute_spectral_flatness(_pad_audio_for_fft(tail, min_len=2048))))
+    is_decaying = slope < -0.05
+
+    confidence = (0.6 * decay_fit_r2 + 0.4 * min(1.0, flatness * 6.0)) if is_decaying else 0.0
+    return float(np.clip(confidence, 0.0, 1.0))
+
+
+def estimate_swing_ratio(onset_times, beat_times) -> float:
+    """
+    Estimates the eighth-note swing ratio of a sequence of onsets against a
+    tracked beat grid. 0.5 is a perfectly straight (unswung) subdivision;
+    values further from 0.5 (typically ~0.58-0.67 for triplet-feel swing)
+    indicate the "long-short" shuffle characteristic of swing/shuffle genres.
+    This is measured *before* quantization so the quantizer (see
+    snap_events_to_beat_grid) can preserve intentional swing feel instead of
+    snapping every offbeat onset to a straight 50/50 subdivision.
+    """
+    if np is None or onset_times is None or beat_times is None or len(beat_times) < 2 or len(onset_times) == 0:
+        return 0.5
+
+    onset_arr = np.asarray(list(onset_times), dtype=float)
+    beat_arr = np.asarray(list(beat_times), dtype=float)
+    ratios = []
+    for i in range(len(beat_arr) - 1):
+        beat_dur = beat_arr[i + 1] - beat_arr[i]
+        if beat_dur <= 1e-6:
+            continue
+        in_beat = onset_arr[(onset_arr > beat_arr[i] + beat_dur * 0.15) & (onset_arr < beat_arr[i + 1] - beat_dur * 0.05)]
+        for onset in in_beat:
+            ratios.append(float((onset - beat_arr[i]) / beat_dur))
+
+    if not ratios:
+        return 0.5
+    return float(np.clip(np.median(ratios), 0.5, 0.75))
+
+
+def enrich_event_timbre_and_dynamics(event: AudioEvent, audio_y, sr, tuning_type: str = DEFAULT_TUNING_TYPE) -> AudioEvent:
+    """
+    Runs the full per-note enrichment pass (spectral fingerprint, articulation,
+    dynamics, reverb-tail confidence) against a single AudioEvent using the raw
+    audio it was detected from, and writes the results back onto the event.
+    Pure metadata enrichment: pitch, timing, and existing tags are untouched.
+    """
+    if event.is_rest or audio_y is None or np is None:
+        return event
+
+    start_sample, end_sample = max(0, int(event.start * sr)), min(len(audio_y), int(event.end * sr))
+    if end_sample - start_sample < 512:
+        return event
+
+    segment = audio_y[start_sample:end_sample]
+    f0_hz = midi_to_hz(event.pitch)
+
+    event.inharmonicity_coefficient = compute_inharmonicity_coefficient(segment, sr, f0_hz)
+    event.spectral_tilt_db_oct = compute_spectral_tilt(segment, sr)
+    best_string, string_conf = classify_source_string(
+        event.pitch, event.inharmonicity_coefficient, event.spectral_tilt_db_oct, tuning_type=tuning_type
+    )
+    event.string_confidence = string_conf
+    if best_string is not None and event.string is None:
+        event.string = best_string
+
+    label, slope = classify_attack_envelope(audio_y, sr, event.start)
+    event.attack_transient_slope = slope
+    if label == "legato" and not (event.is_hammer_on or event.is_pull_off):
+        event.is_hammer_on = True
+        event.tag = "hammer_on" if event.tag == "normal" else event.tag
+
+    if event.is_slide or event.is_legato:
+        contour = track_continuous_pitch_contour(audio_y, sr, event.start, event.end, f0_hz)
+        event.pitch_contour_cents = contour
+        gesture = classify_pitch_gesture(contour, crosses_fret_boundary=event.is_slide)
+        if gesture == "bend" and not event.is_slide:
+            event.is_bend = True
+
+    event.rms_energy = float(np.sqrt(np.mean(np.square(segment)))) if len(segment) else 0.0
+    event.perceptual_loudness_lufs = compute_perceptual_loudness_lufs(segment, sr)
+    event.reverb_tail_confidence = estimate_reverb_tail_confidence(audio_y, sr, event.end)
+    # Broadband, non-harmonic energy proportion in the attack window -- high
+    # values flag percussive slap/mute noise bursts rather than tonal content.
+    flatness = compute_spectral_flatness(_pad_audio_for_fft(segment, min_len=2048))
+    event.noise_residual_ratio = float(np.clip(np.mean(flatness), 0.0, 1.0)) if len(flatness) else 0.0
+
+    return event
+
+
+def stage2b_timbral_spectral_and_dynamics_enrichment(
+    event_streams: dict,
+    primary_key: str,
+    stem_folder: str = None,
+    sr: int = DEFAULT_SAMPLE_RATE,
+    genre_config: dict = None,
+) -> dict:
+    """
+    PHASE II - Stage 2b: Timbral Fingerprinting, Articulation & Dynamics Enrichment
+    • Inharmonicity (B) & Spectral Tilt -> Per-String Confidence
+    • Attack Envelope Classification (Pluck vs. Hammer-on/Pull-off)
+    • Continuous Pitch Contour Tracking (Bend vs. Slide)
+    • Psychoacoustic Loudness Mapping (Fletcher-Munson Aware)
+    • Reverb Tail Confidence Flagging
+
+    Purely additive enrichment layer that runs between F0 tracking (Stage 2)
+    and percussive grid mining (Stage 3). When raw stem audio isn't available
+    (e.g. transcribing from cached/pre-extracted MIDI event streams with no
+    accompanying .wav files) this is a safe no-op: events pass through with
+    their default metadata values untouched.
+    """
+    if not stem_folder or primary_key not in event_streams:
+        return event_streams
+
+    source_stem = event_streams[primary_key].get("source_stem", "bass")
+    try:
+        stems = load_all_stems(stem_folder, sr=sr, stems_to_load=[source_stem])
+        audio_y = stems.get(source_stem)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        logger.info("Stage 2b enrichment skipped: raw stem audio unavailable (%s)", exc)
+        return event_streams
+
+    if audio_y is None or len(audio_y) == 0:
+        return event_streams
+
+    genre_obj = _get_genre_obj(genre_config)
+    tuning_type = getattr(genre_obj, "tuning", DEFAULT_TUNING_TYPE) or DEFAULT_TUNING_TYPE
+
+    events = event_streams[primary_key].get("events", [])
+    for event in events:
+        try:
+            enrich_event_timbre_and_dynamics(event, audio_y, sr, tuning_type=tuning_type)
+        except (ValueError, RuntimeError) as exc:
+            logger.warning("Stage 2b enrichment failed for event at %.2fs: %s", event.start, exc)
+
+    return event_streams
 
 
 def extract_csim_context(stem_dict, sr, genre_config=None):

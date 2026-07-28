@@ -186,6 +186,43 @@ class AudioEvent(BaseModel):
     is_anchor: bool = False
     confidence: float = 1.0
 
+    # --- Timbral & Spectral Fingerprinting (String Discrimination) ---
+    # Distinguishes which physical string produced a pitch that is reachable on
+    # more than one string, using inharmonicity (string stiffness) and spectral
+    # tilt (brightness) rather than fret-distance heuristics alone.
+    inharmonicity_coefficient: float = 0.0
+    spectral_tilt_db_oct: float = 0.0
+    string_confidence: dict[int, float] = Field(default_factory=dict)
+
+    # --- Expressive Technique & Articulation Classification ---
+    # attack_transient_slope is the normalized onset rise steepness: near 1.0
+    # for a sharply-attacked pluck, near 0.0 for a smoothly-slurred hammer-on
+    # or pull-off (no restrike). pitch_contour_cents traces continuous
+    # microtonal drift within the note so bends (same string/fret) can be told
+    # apart from portamento slides (crossing frets) using is_slide/slide_from.
+    attack_transient_slope: float = 1.0
+    is_bend: bool = False
+    pitch_contour_cents: list[float] = Field(default_factory=list)
+    noise_residual_ratio: float = 0.0
+
+    # --- Dynamic Envelope & Perceptual Loudness ---
+    rms_energy: float = 0.0
+    perceptual_loudness_lufs: float = -23.0
+
+    # --- Acoustic Environment: De-reverberation & Source Bleed ---
+    # reverb_tail_confidence flags energy after note-off that decays like a
+    # room reflection rather than a genuinely held/sustained pitch.
+    # source_bleed_confidence flags energy likely bled in from another
+    # instrument's stem rather than originating from the target instrument.
+    reverb_tail_confidence: float = 0.0
+    source_bleed_confidence: float = 0.0
+
+    # --- Temporal Grid Alignment ---
+    # Signed offset (as a fraction of the local beat subdivision) between the
+    # raw onset and the nearest straight grid line, captured before
+    # quantization so intentional swing/rubato can be preserved on-grid.
+    swing_offset_ratio: float = 0.0
+
     @model_validator(mode="after")
     def _run_post_init_sync(self) -> "AudioEvent":
         if not self.pitches:
