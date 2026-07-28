@@ -192,7 +192,7 @@ run_tests() {
     # shellcheck disable=SC1091
     source .venv/bin/activate
 
-    pytest
+    pytest src/tests
 }
 
 run_cli() {

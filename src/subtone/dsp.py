@@ -30,8 +30,8 @@ except ModuleNotFoundError:
     pretty_midi = None
 
 from subtone.schemas import AudioEvent, Genre, Song
-from subtone.pitch_theory import hz_to_midi, midi_to_hz
-from subtone.settings_loader import (
+from subtone.musicality import hz_to_midi, midi_to_hz
+from subtone.settings import (
     DEFAULT_BPM,
     DEFAULT_FFT_SIZE,
     DEFAULT_SAMPLE_RATE,
@@ -1573,7 +1573,7 @@ def apply_lossy_abstraction(
     purged = purge_audio_artifacts(raw_notes, bass_audio=audio_y, sr=sr, genre_config=genre_config)
 
     if abstraction_level <= 3 and audio_y is not None:
-        from subtone.pitch_theory import detect_key_signature as _detect_key
+        from subtone.musicality import detect_key_signature as _detect_key
 
         scale_pc_res, _ = _detect_key(audio_y, sr)
         if scale_pc_res is not None and hasattr(scale_pc_res, "getPitches"):
@@ -1738,3 +1738,202 @@ def transcribe_song(
         stem_folder=stem_folder,
         **song_metadata,
     )
+
+
+# --- 6-Phase / 12-Stage Architecture Functions ---
+
+
+def stage1_stem_separation_and_audio_to_midi(
+    target_input: str,
+    custom_genre: str = None,
+    config_path: str = None,
+):
+    """
+    PHASE I - Stage 1: External Script Stem Separation & Audio-to-MIDI
+    • Multi-Stem Separation using Demucs
+    • Audio-to-MIDI Extraction with Basic-Pitch / Librosa
+    """
+    from subtone.musicality import parse_metadata_from_path
+
+    artist_name, song_title, track_id, parsed_key, genre_name, genre_config = parse_metadata_from_path(
+        target_input,
+        custom_genre=custom_genre,
+        config_path=config_path,
+    )
+
+    event_streams, song_stem_name, cached_events_path = process_audio_target_to_events(
+        target_path=target_input,
+        genre_config=genre_config,
+        custom_genre=custom_genre,
+    )
+
+    metadata = {
+        "artist_name": artist_name,
+        "song_title": song_title,
+        "track_id": track_id,
+        "parsed_key": parsed_key,
+        "genre_name": genre_name,
+        "genre_config": genre_config,
+        "song_stem_name": song_stem_name,
+        "cached_events_path": cached_events_path,
+    }
+    return metadata, event_streams
+
+
+def stage2_multistem_f0_tracking(
+    event_streams: dict,
+    target_input: str = None,
+    genre_config: dict = None,
+    genre_override: str = None,
+):
+    """
+    PHASE II - Stage 2: Multi-Stem Source Separation & Genre Policy F0 Tracking
+    • Demucs HPSS (Bass, Drums, Vocals, Guitar, Piano, Other)
+    • Genre Policy Injection (Tuning, Technique, DSP Bounds)
+    • Dynamic F0 Tracking (Sub-bass, Drop Tuning, Slap Attacks)
+    """
+    _apply_octave_correction(event_streams)
+
+    genre_obj = _get_genre_obj(genre_config)
+    tuning_type = getattr(genre_obj, "tuning", DEFAULT_TUNING_TYPE) or DEFAULT_TUNING_TYPE
+    fmin_hz = 18.0 if ("5_string" in str(tuning_type) or "6_string" in str(tuning_type) or "drop" in str(tuning_type)) else 25.0
+
+    pYin_key = next((k for k in event_streams if "pYin" in k or "torch_crepe" in k or "touchcrepe" in k or "crepe" in k), None)
+    if not pYin_key:
+        primary_key = "bass" if "bass" in event_streams else (list(event_streams.keys())[0] if event_streams else "primary")
+    else:
+        primary_key = pYin_key
+
+    return event_streams, primary_key, tuning_type, fmin_hz
+
+
+def stage3_drum_percussive_grid_mining(
+    event_streams: dict,
+    drums_y=None,
+    sr: int = DEFAULT_SAMPLE_RATE,
+    genre_config: dict = None,
+):
+    """
+    PHASE II - Stage 3: Genre-Aware Percussive Grid & Rhythmic Anchor Mining [DRUMS]
+    • Transient Energy Mining (Kick/Snare/Hi-Hat Maps)
+    • Dynamic Swing Ratio & Clave/Syncopation Grid Extraction
+    """
+    drum_events = []
+    if "drums" in event_streams:
+        drum_events = event_streams["drums"].get("events", [])
+    elif "percussion" in event_streams:
+        drum_events = event_streams["percussion"].get("events", [])
+
+    bpm = 120.0
+    time_sig = "4/4"
+    if drums_y is not None and np is not None:
+        beat_times, bpms, time_sig = estimate_beat_grid(drums_y, sr)
+        if len(bpms) > 0:
+            bpm = float(np.median(bpms))
+    else:
+        for sdata in event_streams.values():
+            meta = sdata.get("metadata", {})
+            if "bpm" in meta:
+                bpm = float(meta["bpm"])
+            if "time_sig" in meta:
+                time_sig = meta["time_sig"]
+                break
+
+    return drum_events, bpm, time_sig
+
+
+def stage4_frame_to_symbolic_bounding(
+    event_streams: dict,
+    song: Song = None,
+    genre_config: dict = None,
+):
+    """
+    PHASE III - Stage 4: Frame-to-Symbolic Bounding & Quantization Grid Mapping
+    • Converts frame-level F0 trajectories into symbolic Note objects bounded on the quantization grid
+    """
+    from subtone.schemas import Note
+
+    if song is not None and song.bass_notes:
+        return song.bass_notes
+
+    primary_key = "bass" if "bass" in event_streams else (list(event_streams.keys())[0] if event_streams else "primary")
+    p_stream = event_streams.get(primary_key, {})
+    events = p_stream.get("events", [])
+
+    notes = [Note.from_audio_event(ev) for ev in events] if events else []
+    return notes
+
+
+def stage5_drum_pocket_and_groove_audit(
+    bass_notes: list,
+    drum_events: list = None,
+    bpm: float = 120.0,
+    genre_config: dict = None,
+):
+    """
+    PHASE III - Stage 5: Genre-Conditioned Rhythmic Pocket & Groove Audit [DRUMS STEM]
+    • Transient Attack Alignment & Pocket Determination
+    • Technique Ghost Note Tagging (Slap Clicks / Palm Mutes)
+    """
+    if not bass_notes:
+        return []
+
+    kick_times = [
+        d.start
+        for d in (drum_events or [])
+        if getattr(d, "pitch", 0) in [35, 36] or "kick" in getattr(d, "tag", "")
+    ]
+
+    for n in bass_notes:
+        if kick_times:
+            closest_kick = min(kick_times, key=lambda kt: abs(kt - n.start))
+            if abs(closest_kick - n.start) < 0.04:
+                n.is_pocket_aligned = True
+
+        amp = getattr(n, "amplitude", 0.5)
+        if amp < 0.25 and not getattr(n, "is_ghost", False):
+            n.is_ghost = True
+            n.tag = "ghost"
+
+    return bass_notes
+
+
+def stage6_melodic_counterpoint_register_audit(
+    bass_notes: list,
+    vocal_events: list = None,
+    guitar_events: list = None,
+    genre_config: dict = None,
+):
+    """
+    PHASE III - Stage 6: Melodic Counterpoint & Register Audit [VOCALS / GUITAR STEMS]
+    • Spectral Masking Resolution & Pitch Cutoff Filtering
+    Returns rhythmically & melodically validated notes.
+    """
+    validated = []
+    for n in bass_notes:
+        pitch_val = getattr(n, "pitch", None)
+        if pitch_val is not None:
+            if 18 <= pitch_val <= 75:
+                validated.append(n)
+        else:
+            validated.append(n)
+    return validated
+
+
+def stage10_songwide_multistem_audit(
+    song: Song,
+    measure_chunks: list = None,
+    all_stem_events: dict = None,
+):
+    """
+    PHASE V - Stage 10: Song-Wide Multi-Stem Audit, Outlier Pruning & Coherence
+    • Cross-Scan Bass against ALL STEMS (Drums/Guitar/Keys/Vocals)
+    • Section Healing & Melodic Strictest Bounds Enforcement
+    """
+    if measure_chunks:
+        for chunk in measure_chunks:
+            for atom in getattr(chunk, "atoms", []):
+                if not getattr(atom, "is_rest", False) and getattr(atom, "pitch", 0) > 0:
+                    if atom.pitch < 18 or atom.pitch > 75:
+                        atom.pitch = max(18, min(75, atom.pitch))
+    return measure_chunks

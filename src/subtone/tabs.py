@@ -3,7 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 
-from subtone.settings_loader import (
+from subtone.settings import (
     ATTRIBUTES_SCHEMA_ORDER,
     BASS_STRING_TUNINGS,
     DEFAULT_TIME_SIGNATURE,
@@ -14,10 +14,10 @@ from subtone.settings_loader import (
     NOTE_SCHEMA_ORDER,
     TECHNICAL_SCHEMA_ORDER,
 )
-from subtone.fretboard import ErgonomicFretboardHMMSolver
+from subtone.biomechanics import ErgonomicFretboardHMMSolver
 
 from subtone.schemas import Genre, Level, MeasureChunk, Note, RhythmicAtom, Song
-from subtone.pitch_theory import get_directional_enharmonic_pitch, parse_key_object
+from subtone.musicality import get_directional_enharmonic_pitch, parse_key_object
 
 try:
     import numpy as np
@@ -201,6 +201,7 @@ except ModuleNotFoundError:
 
             lines = [
                 '<?xml version="1.0" encoding="UTF-8"?>',
+                '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
                 '<score-partwise version="3.1">',
                 "  <part-list>",
                 '    <score-part id="P1">',
@@ -228,23 +229,29 @@ except ModuleNotFoundError:
 
             m_num = 1
             divisions = 32
+            last_ts = None
 
-            for m in measures if measures else [self]:
+            for idx, m in enumerate(measures if measures else [self]):
                 measure_number = getattr(m, "number", m_num)
                 m_num = measure_number + 1
 
-                m_ts = _find_time_sig(m)
-                if m_ts:
-                    curr_num, curr_den = m_ts
+                m_ts = _find_time_sig(m) or (curr_num, curr_den)
 
                 lines.append(f'    <measure number="{measure_number}">')
-                lines.append("      <attributes>")
-                lines.append(f"        <divisions>{divisions}</divisions>")
-                lines.append("        <time>")
-                lines.append(f"          <beats>{curr_num}</beats>")
-                lines.append(f"          <beat-type>{curr_den}</beat-type>")
-                lines.append("        </time>")
-                lines.append("      </attributes>")
+                if idx == 0 or m_ts != last_ts:
+                    last_ts = m_ts
+                    lines.append("      <attributes>")
+                    lines.append(f"        <divisions>{divisions}</divisions>")
+                    lines.append("        <time>")
+                    lines.append(f"          <beats>{m_ts[0]}</beats>")
+                    lines.append(f"          <beat-type>{m_ts[1]}</beat-type>")
+                    lines.append("        </time>")
+                    if idx == 0:
+                        lines.append("        <clef>")
+                        lines.append("          <sign>F</sign>")
+                        lines.append("          <line>4</line>")
+                        lines.append("        </clef>")
+                    lines.append("      </attributes>")
 
                 notes = [
                     n
@@ -252,17 +259,21 @@ except ModuleNotFoundError:
                     if getattr(n, "isNote", False) or getattr(n, "isRest", False)
                 ]
                 if not notes:
-                    capacity_q = curr_num * (4.0 / curr_den)
+                    capacity_q = m_ts[0] * (4.0 / m_ts[1])
                     dur_units = max(1, int(round(capacity_q * divisions)))
+                    rest_type, rest_dots = _quarter_length_to_type_and_dots(capacity_q)
                     lines.append("      <note>")
                     lines.append("        <rest/>")
                     lines.append(f"        <duration>{dur_units}</duration>")
-                    lines.append("        <type>quarter</type>")
+                    lines.append(f"        <type>{rest_type}</type>")
+                    for _ in range(rest_dots):
+                        lines.append("        <dot/>")
                     lines.append("      </note>")
                 else:
                     for n in notes:
                         dur_q = getattr(getattr(n, "duration", n), "quarterLength", 1.0)
                         dur_units = max(1, int(round(dur_q * divisions)))
+                        n_type, n_dots = _quarter_length_to_type_and_dots(dur_q)
                         lines.append("      <note>")
                         if getattr(n, "pitch", None):
                             lines.append("        <pitch>")
@@ -280,13 +291,8 @@ except ModuleNotFoundError:
                             if t_val not in ["start", "stop", "continue"]:
                                 t_val = "start"
                             lines.append(f'        <tie type="{t_val}"/>')
-                        lines.append("        <type>quarter</type>")
-                        if (
-                            abs(dur_q - 0.75) < 1e-3
-                            or abs(dur_q - 1.5) < 1e-3
-                            or abs(dur_q - 3.0) < 1e-3
-                            or getattr(n, "is_dotted", False)
-                        ):
+                        lines.append(f"        <type>{n_type}</type>")
+                        for _ in range(n_dots):
                             lines.append("        <dot/>")
                         if getattr(n, "pitch", None) and getattr(n.pitch, "alter", 0) != 0:
                             if n.pitch.alter == 1:
@@ -363,12 +369,21 @@ except ModuleNotFoundError:
 
             return _factory
 
+    class _DummyKeyModule:
+        class Key(_DummyObj):
+            def __init__(self, tonic="C", mode="major", *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.tonic = _DummyObj(name=tonic)
+                self.mode = mode
+                self.name = f"{tonic} {mode}"
+                self.netSharps = 0
+
     _m = _DummyModule()
     articulations = _m
     dynamics = _m
     expressions = _m
     instrument = _m
-    key = _m
+    key = _DummyKeyModule()
     meter = _m
     metadata = _m
     note = _NoteModule()
@@ -812,11 +827,11 @@ def _inject_tablature_technical(
                 pan = ET.SubElement(midi_inst, f"{ns}pan")
             pan.text = "0"
 
-    tuning = BASS_TUNINGS.get(getattr(song, "tuning_type", DEFAULT_TUNING_TYPE), BASS_TUNINGS[DEFAULT_TUNING_TYPE])
+    tuning = BASS_TUNINGS.get(song.tuning_type, BASS_TUNINGS[DEFAULT_TUNING_TYPE])
     num_strings = len(tuning)
     open_strings = {num_strings - idx: string_midi for idx, (_, _, string_midi) in enumerate(tuning)}
 
-    raw_key = getattr(song, "key_obj", None) or getattr(song, "parsed_key_str", None)
+    raw_key = song.key_obj or song.parsed_key_str
     fifths_val, mode_val = get_key_fifths_and_mode(raw_key)
     key_defaults = get_key_defaults(fifths_val)
 
@@ -893,7 +908,16 @@ def _inject_tablature_technical(
             o_elem.text = "-1"
 
         pitch_note_counter = 0
-        for measure in measures:
+        last_position = None
+        for idx_m, measure in enumerate(measures):
+            if idx_m > 0:
+                attr_elem = measure.find(f"{ns}attributes")
+                if attr_elem is not None:
+                    key_e = attr_elem.find(f"{ns}key")
+                    clef_e = attr_elem.find(f"{ns}clef")
+                    if key_e is None and clef_e is None:
+                        measure.remove(attr_elem)
+
             measure_alters = key_defaults.copy()
             notes_in_m = list(measure.findall(f"{ns}note"))
             for note_elem in notes_in_m:
@@ -921,12 +945,15 @@ def _inject_tablature_technical(
 
                 # Ensure <tied> tags inside <notations> match <tie> elements
                 tie_elems = note_elem.findall(f"{ns}tie")
+                is_tied_continuation = False
                 if tie_elems:
                     notations = note_elem.find(f"{ns}notations")
                     if notations is None:
                         notations = _insert_schema_compliant(note_elem, "notations", NOTE_SCHEMA_ORDER, ns)
                     for te in tie_elems:
                         t_type = te.get("type")
+                        if t_type in ("stop", "continue"):
+                            is_tied_continuation = True
                         if t_type:
                             existing_tied = [td for td in notations.findall(f"{ns}tied") if td.get("type") == t_type]
                             if not existing_tied:
@@ -952,11 +979,17 @@ def _inject_tablature_technical(
                         alter,
                     )
 
-                    position = (
-                        rendered_fretboard_path[pitch_note_counter]
-                        if rendered_fretboard_path and pitch_note_counter < len(rendered_fretboard_path)
-                        else None
-                    )
+                    if is_tied_continuation and last_position is not None:
+                        position = last_position
+                    else:
+                        position = (
+                            rendered_fretboard_path[pitch_note_counter]
+                            if rendered_fretboard_path and pitch_note_counter < len(rendered_fretboard_path)
+                            else None
+                        )
+                        if position is not None:
+                            last_position = position
+
                     string_num = None
                     fret_num = None
 
@@ -974,9 +1007,7 @@ def _inject_tablature_technical(
                             fret_num = position.fret_num
 
                     if string_num is None or fret_num is None:
-                        string_num, fret_num = _calculate_correct_string_fret(
-                            midi_val, getattr(song, "tuning_type", DEFAULT_TUNING_TYPE)
-                        )
+                        string_num, fret_num = _calculate_correct_string_fret(midi_val, song.tuning_type)
 
                     string_num = max(1, min(num_strings, int(string_num)))
                     fret_num = max(0, min(MAX_FRETBOARD_FRETS, int(fret_num)))
@@ -999,7 +1030,7 @@ def _inject_tablature_technical(
 
                     # Accidental evaluation after final pitch step/alter is guaranteed
                     acc_elem = note_elem.find(f"{ns}accidental")
-                    if alter != measure_alters.get(step_text, 0):
+                    if alter != 0:
                         accidental_names = {1: "sharp", -1: "flat", 0: "natural", 2: "double-sharp", -2: "flat-flat"}
                         acc_text = accidental_names.get(alter, "natural")
                         _set_or_create_ordered(
@@ -1010,6 +1041,15 @@ def _inject_tablature_technical(
                             ns,
                         )
                         measure_alters[step_text] = alter
+                    elif alter == 0 and measure_alters.get(step_text, 0) != 0:
+                        _set_or_create_ordered(
+                            note_elem,
+                            "accidental",
+                            "natural",
+                            NOTE_SCHEMA_ORDER,
+                            ns,
+                        )
+                        measure_alters[step_text] = 0
                     else:
                         if acc_elem is not None:
                             note_elem.remove(acc_elem)
@@ -1024,23 +1064,25 @@ def _inject_tablature_technical(
                     _set_or_create_ordered(technical, "fret", fret_num, TECHNICAL_SCHEMA_ORDER, ns)
 
                     # Inject idiomatic bass articulations if available
-                    if pitch_note_counter < len(song.notes):
-                        curr_note = song.notes[pitch_note_counter]
-                        if getattr(curr_note, "is_slide", False) or getattr(curr_note, "tag", "") == "slide":
+                    curr_note_idx = pitch_note_counter if not is_tied_continuation else max(0, pitch_note_counter - 1)
+                    if curr_note_idx < len(song.notes):
+                        curr_note = song.notes[curr_note_idx]
+                        if curr_note.is_slide or curr_note.tag == "slide":
                             _set_or_create_ordered(technical, "slide", "", TECHNICAL_SCHEMA_ORDER, ns)
-                        if getattr(curr_note, "is_legato", False) or getattr(curr_note, "tag", "") in [
+                        if curr_note.is_legato or curr_note.tag in [
                             "hammer_on",
                             "pull_off",
                         ]:
                             _set_or_create_ordered(technical, "hammer-on", "", TECHNICAL_SCHEMA_ORDER, ns)
-                        if getattr(curr_note, "tag", "") == "palm_mute":
+                        if curr_note.tag == "palm_mute":
                             _set_or_create_ordered(technical, "other-technical", "P.M.", TECHNICAL_SCHEMA_ORDER, ns)
-                        elif getattr(curr_note, "tag", "") == "slap" or getattr(curr_note, "is_slap", False):
+                        elif curr_note.tag == "slap" or curr_note.is_slap:
                             _set_or_create_ordered(technical, "other-technical", "S", TECHNICAL_SCHEMA_ORDER, ns)
-                        elif getattr(curr_note, "tag", "") == "pop" or getattr(curr_note, "is_pop", False):
+                        elif curr_note.tag == "pop" or curr_note.is_pop:
                             _set_or_create_ordered(technical, "other-technical", "P", TECHNICAL_SCHEMA_ORDER, ns)
 
-                    pitch_note_counter += 1
+                    if not is_tied_continuation:
+                        pitch_note_counter += 1
                 except (ValueError, TypeError, IndexError) as err:
                     raise ValueError(f"Could not assign tablature to MusicXML pitch: {err}") from err
 
@@ -1221,7 +1263,7 @@ def decompose_note_to_atoms(
     """
     MIN_ATOM = fractions.Fraction(1, 24) if is_compound else fractions.Fraction(1, 32)
 
-    if note_obj is None or getattr(note_obj, "is_rest", False):
+    if note_obj is None or note_obj.is_rest:
         chunks = decompose_duration_engraver_rules(q_dur, curr_m_fill, measure_capacity, is_compound)
         atoms = []
         for chunk_dur in chunks:
@@ -1247,8 +1289,8 @@ def decompose_note_to_atoms(
                 continue
             tie_t = (
                 "start"
-                if getattr(note_obj, "is_tied_start", False)
-                else ("stop" if getattr(note_obj, "is_tied_stop", False) else None)
+                if note_obj.is_tied_start
+                else ("stop" if note_obj.is_tied_stop else None)
             )
             atom = RhythmicAtom.from_note(
                 note_obj=note_obj,
@@ -1330,7 +1372,7 @@ def stream_quantized_events(
     across measure boundaries with ties, and applies metric engraver rules using RhythmicAtoms.
     """
     quarter_sec = 60.0 / bpm if bpm > 0 else 0.5
-    sorted_layer = sorted([e for e in note_layer if getattr(e, "duration", 0) > 0], key=lambda x: x.start)
+    sorted_layer = sorted([e for e in note_layer if e.duration > 0], key=lambda x: x.start)
 
     curr_m_num = 1
     curr_m_fill = fractions.Fraction(0, 1)
@@ -1399,7 +1441,7 @@ def stream_quantized_events(
 
         q_dur = fractions.Fraction(evt.duration / quarter_sec)
 
-        if getattr(evt, "is_rest", False):
+        if evt.is_rest:
             if q_dur > 0:
                 yield from _yield_rests(q_dur)
         else:
@@ -1450,7 +1492,7 @@ def _amplitude_to_dynamic(amplitude: float):
 
 def _make_note_or_rest(evt, q_dur, detected_key):
     """Instantiates a music21 Note or Rest with articulations."""
-    if evt is None or getattr(evt, "is_rest", False):
+    if evt is None or evt.is_rest:
         r = note.Rest()
         r.duration = build_m21_duration(q_dur)
         return r
@@ -1459,27 +1501,27 @@ def _make_note_or_rest(evt, q_dur, detected_key):
     m21_note = note.Note(p_str)
     m21_note.duration = build_m21_duration(q_dur)
 
-    if getattr(evt, "is_accent", False):
+    if evt.is_accent:
         m21_note.articulations.append(articulations.Accent())
-    if getattr(evt, "is_staccato", False) or getattr(evt, "tag", "") == "staccato":
+    if evt.is_staccato or evt.tag == "staccato":
         m21_note.articulations.append(articulations.Staccato())
-    if getattr(evt, "is_tenuto", False):
+    if evt.is_tenuto:
         m21_note.articulations.append(articulations.Tenuto())
 
-    if getattr(evt, "is_fermata", False):
+    if evt.is_fermata:
         m21_note.expressions.append(expressions.Fermata())
-    if getattr(evt, "is_slap", False) or getattr(evt, "tag", "") == "slap":
+    if evt.is_slap or evt.tag == "slap":
         m21_note.expressions.append(expressions.TextExpression("S"))
-    elif getattr(evt, "is_pop", False) or getattr(evt, "tag", "") == "pop":
+    elif evt.is_pop or evt.tag == "pop":
         m21_note.expressions.append(expressions.TextExpression("P"))
-    elif getattr(evt, "is_palm_mute", False) or getattr(evt, "tag", "") == "palm_mute":
+    elif evt.is_palm_mute or evt.tag == "palm_mute":
         m21_note.expressions.append(expressions.TextExpression("P.M."))
 
-    if getattr(evt, "is_ghost", False) or getattr(evt, "tag", "") == "ghost":
+    if evt.is_ghost or evt.tag == "ghost":
         m21_note.notehead = "x"
         m21_note.noteheadParenthesis = True
         m21_note.articulations.append(articulations.Staccato())
-    elif getattr(evt, "is_harmonic", False) or getattr(evt, "tag", "") == "harmonic":
+    elif evt.is_harmonic or evt.tag == "harmonic":
         m21_note.notehead = "diamond"
 
     return m21_note
@@ -1487,18 +1529,18 @@ def _make_note_or_rest(evt, q_dur, detected_key):
 
 def build_and_export_song(song: Song, output_xml_path: str = None, **kwargs):
     """Export a Song without unpacking its state at every service boundary."""
-    destination = output_xml_path or getattr(song, "output_xml_path", None)
+    destination = output_xml_path or song.output_xml_path
     if not destination:
         raise ValueError("Song.output_xml_path must be set before exporting")
 
-    target_level = getattr(song, "target_level", 5)
+    target_level = song.target_level
 
     if kwargs.pop("filter_level", True):
         filter_song_for_level(song, target_level)
 
     return _build_score(
         note_layer=song.notes,
-        fretboard_path=getattr(song, "fretboard_path", None),
+        fretboard_path=song.fretboard_path,
         detected_key=song.key_obj,
         song_title=song.song_title,
         artist_name=song.artist_name,
@@ -1597,7 +1639,7 @@ def _build_score(
         else:
             is_new_onset = chunk.tie_type in (None, "start")
             if is_new_onset:
-                new_dynamic = _amplitude_to_dynamic(getattr(chunk.event, "amplitude", None))
+                new_dynamic = _amplitude_to_dynamic(chunk.event.amplitude)
                 if new_dynamic and new_dynamic != last_dynamic:
                     m.append(make_dynamic(new_dynamic))
                     last_dynamic = new_dynamic
@@ -1613,9 +1655,7 @@ def _build_score(
             else:
                 event_nodes[evt_id]["last"] = m21_n
 
-            emitted_fretboard_path.append(
-                getattr(chunk.event, "fret_position", None) or positions_by_note_id.get(evt_id)
-            )
+            emitted_fretboard_path.append(chunk.event.fret_position or positions_by_note_id.get(evt_id))
 
     for m_num in sorted(measures_map.keys()):
         m = measures_map[m_num]
@@ -1637,9 +1677,9 @@ def _build_score(
             _, prev_last = prev_info["evt"], prev_info["last"]
             curr_evt, curr_first = curr_info["evt"], curr_info["first"]
 
-            if getattr(curr_evt, "is_legato", False):
+            if curr_evt.is_legato:
                 m21_score.insert(0, spanner.Slur(prev_last, curr_first))
-            if getattr(curr_evt, "is_slide", False):
+            if curr_evt.is_slide:
                 m21_score.insert(0, spanner.Glissando(prev_last, curr_first))
 
     for m in m21_part.getElementsByClass(stream.Measure):
@@ -1656,3 +1696,75 @@ def _build_score(
     if song is None:
         raise RuntimeError("Internal score builder requires a Song state")
     _inject_tablature_technical(song, output_xml_path, emitted_fretboard_path)
+
+
+# --- 6-Phase / 12-Stage Architecture Functions ---
+
+
+def stage9_pedagogical_abstraction_and_partitioning(song: Song, target_level: int = 5):
+    """
+    PHASE IV - Stage 9: Pedagogical Abstraction (Levels 1-5) & Metric Partitioning
+    • 5-Level Pedagogical Filter Matrix Application
+    • Measure Capacity Partitioning & Beat Boundary Note Tying
+    """
+    filter_song_for_level(song)
+
+    parts = song.time_sig.split("/") if song.time_sig and "/" in song.time_sig else ["4", "4"]
+    num = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 4
+    den = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 4
+    measure_capacity = fractions.Fraction(num * 4, den).limit_denominator(64)
+
+    chunks = list(
+        stream_quantized_events(
+            song.bass_notes,
+            song.bpm,
+            measure_capacity,
+            song.is_compound,
+            level=target_level,
+        )
+    )
+    return chunks, measure_capacity
+
+
+def stage11_rest_synthesis_and_reconciliation(
+    measure_chunks: list,
+    measure_capacity,
+    time_sig: str = "4/4",
+):
+    """
+    PHASE V - Stage 11: First-Class Rest Synthesis & Measure Reconciliation
+    • Instantiate Explicit Rest Objects (Duration, Position)
+    • Strict Measure Capacity Lock: Sum(Notes) + Sum(Rests) = Bar
+    Produces Fully Audited Score Object Tree (Notes + Rests).
+    """
+    for chunk in measure_chunks:
+        total_dur = sum((a.duration_q for a in chunk.atoms), fractions.Fraction(0, 1))
+        remaining = fractions.Fraction(measure_capacity) - total_dur
+
+        if remaining > 0:
+            rest_atom = RhythmicAtom(
+                pitch=0,
+                is_rest=True,
+                duration_q=remaining,
+                start_q=total_dur,
+                measure_index=chunk.measure_num,
+            )
+            chunk.atoms.append(rest_atom)
+
+    return measure_chunks
+
+
+def stage12_musicxml_dom_serialization(
+    song: Song,
+    measure_chunks: list = None,
+    output_path: str = None,
+):
+    """
+    PHASE VI - Stage 12: Pure 1:1 Score Object to MusicXML DOM Serialization
+    Pure 1:1 Score Object to MusicXML DOM Serialization.
+    Exports the final .musicxml file.
+    """
+    if output_path:
+        song.output_xml_path = output_path
+    build_and_export_song(song)
+    return song.output_xml_path

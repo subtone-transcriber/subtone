@@ -4,9 +4,24 @@ import fractions
 from typing import Any
 
 try:
-    from pydantic import BaseModel, ConfigDict, Field, ValidationError
+    from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 except ImportError:
-    class ValidationError(Exception):
+    try:
+        from pydantic import BaseModel, Field, ValidationError
+        def model_validator(mode="after"):
+            def decorator(f):
+                return f
+            return decorator
+        def ConfigDict(**kwargs):
+            return kwargs
+    except ImportError:
+        def model_validator(mode="after"):
+            def decorator(f):
+                return f
+            return decorator
+
+        class ValidationError(Exception):
+            pass
         pass
 
     def Field(default=..., default_factory=None, **kwargs):
@@ -59,6 +74,11 @@ except ImportError:
                 if not hasattr(self, k):
                     setattr(self, k, v)
 
+            if hasattr(self, "_run_post_init_sync"):
+                self._run_post_init_sync()
+            elif hasattr(self, "model_post_init"):
+                self.model_post_init(None)
+
         def keys(self):
             return [k for k in self.__dict__.keys() if not k.startswith("_")]
 
@@ -66,7 +86,7 @@ except ImportError:
             return [(k, v) for k, v in self.__dict__.items() if not k.startswith("_")]
 
         def values(self):
-            return [v for k, v in self.__dict__.items() if not k.startswith("_")]
+            return [v for k, v in self.__dict__.keys() if not k.startswith("_")]
 
         def __getitem__(self, item):
             return getattr(self, item)
@@ -119,16 +139,16 @@ class AudioEvent(BaseModel):
     start: float
     end: float
     pitch: int
-    engine: str = "torchcrepe"  # e.g., torchcrepe, basicPitch, pyin, etc.
+    engine: str = "torchcrepe"
     pitches: list[int] = Field(default_factory=list)
     amplitude: float = 0.5
     bends: list[float] = Field(default_factory=list)
     microtone_cents: float = 0.0
-    tag: str = "normal"  # normal, staccato, slap, pop, palm_mute, ghost, harmonic, hammer_on, pull_off, slide
+    tag: str = "normal"
     duty_cycle: float = 1.0
     is_triplet: bool = False
     is_accent: bool = False
-    dynamic_mark: str = "mf"  # p, mp, mf, f
+    dynamic_mark: str = "mf"
     is_pickup: bool = False
     is_harmonic: bool = False
     slide_from: int | None = None
@@ -150,6 +170,8 @@ class AudioEvent(BaseModel):
     is_staccato: bool = False
     is_tenuto: bool = False
     is_fermata: bool = False
+    is_hammer_on: bool = False
+    is_pull_off: bool = False
 
     # Finger position assignment (String, Fret, Finger)
     fret_position: tuple[int, int, int] | None = None
@@ -158,50 +180,56 @@ class AudioEvent(BaseModel):
     is_downpick: bool = False
 
     # Category and Anchor Pattern Encoding Attributes
-    category: str = "melodic"  # groove_anchor, percussive, expressive, melodic
+    category: str = "melodic"
     anchor_pattern: str | None = None
     anchor_fret: int | None = None
     is_anchor: bool = False
     confidence: float = 1.0
 
-    def model_post_init(self, __context: Any) -> None:
+    @model_validator(mode="after")
+    def _run_post_init_sync(self) -> "AudioEvent":
         if not self.pitches:
-            self.pitches = [self.pitch]
+            self.__dict__["pitches"] = [self.pitch]
         self.sync_flags()
         if self.category == "melodic":
             self.determine_category()
+        return self
 
     def sync_flags(self) -> None:
         """Synchronizes performance tag string and boolean technique flags."""
         if self.tag == "slap":
-            self.is_slap = True
+            self.__dict__["is_slap"] = True
         elif self.tag == "pop":
-            self.is_pop = True
+            self.__dict__["is_pop"] = True
         elif self.tag == "ghost":
-            self.is_ghost = True
+            self.__dict__["is_ghost"] = True
         elif self.tag == "palm_mute":
-            self.is_palm_mute = True
+            self.__dict__["is_palm_mute"] = True
         elif self.tag == "staccato":
-            self.is_staccato = True
+            self.__dict__["is_staccato"] = True
         elif self.tag == "harmonic":
-            self.is_harmonic = True
+            self.__dict__["is_harmonic"] = True
         elif self.tag == "slide":
-            self.is_slide = True
+            self.__dict__["is_slide"] = True
+        elif self.tag == "hammer_on":
+            self.__dict__["is_hammer_on"] = True
+        elif self.tag == "pull_off":
+            self.__dict__["is_pull_off"] = True
 
-        if getattr(self, "is_slap", False) and self.tag in ["normal", "rest"]:
-            self.tag = "slap"
-        elif getattr(self, "is_pop", False) and self.tag in ["normal", "rest"]:
-            self.tag = "pop"
-        elif getattr(self, "is_ghost", False) and self.tag in ["normal", "rest"]:
-            self.tag = "ghost"
-        elif getattr(self, "is_palm_mute", False) and self.tag in ["normal", "rest"]:
-            self.tag = "palm_mute"
-        elif getattr(self, "is_staccato", False) and self.tag in ["normal", "rest"]:
-            self.tag = "staccato"
-        elif getattr(self, "is_harmonic", False) and self.tag in ["normal", "rest"]:
-            self.tag = "harmonic"
-        elif getattr(self, "is_slide", False) and self.tag in ["normal", "rest"]:
-            self.tag = "slide"
+        if self.is_slap and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "slap"
+        elif self.is_pop and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "pop"
+        elif self.is_ghost and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "ghost"
+        elif self.is_palm_mute and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "palm_mute"
+        elif self.is_staccato and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "staccato"
+        elif self.is_harmonic and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "harmonic"
+        elif self.is_slide and self.tag in ["normal", "rest"]:
+            self.__dict__["tag"] = "slide"
 
     @classmethod
     def make_rest(cls, start: float, end: float, engine: str = "torchcrepe") -> "AudioEvent":
@@ -243,7 +271,7 @@ class AudioEvent(BaseModel):
             or self.is_pop
             or self.is_staccato
         ):
-            self.category = "percussive"
+            self.__dict__["category"] = "percussive"
         elif (
             self.tag in ["hammer_on", "pull_off", "slide"]
             or self.is_harmonic
@@ -252,12 +280,14 @@ class AudioEvent(BaseModel):
             or self.is_slide
             or self.is_legato
             or self.is_rake
+            or self.is_hammer_on
+            or self.is_pull_off
         ):
-            self.category = "expressive"
+            self.__dict__["category"] = "expressive"
         elif self.is_anchor or self.is_pickup or self.is_accent:
-            self.category = "groove_anchor"
+            self.__dict__["category"] = "groove_anchor"
         else:
-            self.category = "melodic"
+            self.__dict__["category"] = "melodic"
         return self.category
 
     def to_dict(self) -> dict:
@@ -335,8 +365,7 @@ class Note(AudioEvent):
 class RhythmicAtom(BaseModel):
     """
     The fundamental, indivisible notation building block representing a discrete visual
-    sound duration (e.g., a sixteenth note, an eighth note, a dotted quarter) anchored
-    to standard engraver rules.
+    sound duration anchored to standard engraver rules.
     """
 
     model_config = ConfigDict(
@@ -346,12 +375,12 @@ class RhythmicAtom(BaseModel):
         extra="allow",
     )
 
-    pitch: int  # MIDI pitch (0 for rest)
-    duration_q: fractions.Fraction  # Fraction duration in quarter-note units
-    start_q: fractions.Fraction = fractions.Fraction(0, 1)  # Metric start in measure/song quarters
+    pitch: int
+    duration_q: fractions.Fraction
+    start_q: fractions.Fraction = fractions.Fraction(0, 1)
     measure_index: int = 1
     is_rest: bool = False
-    tie_type: str | None = None  # None, 'start', 'continue', 'stop'
+    tie_type: str | None = None
 
     # Fingering / Tablature Coordinates
     string_num: int | None = None
@@ -359,13 +388,13 @@ class RhythmicAtom(BaseModel):
     finger_num: int | None = None
 
     # Provenance
-    parent_event_id: Any | None = None  # ID or reference of parent thick Note/AudioEvent
-    source_note: Note | None = None  # Original Note instance
+    parent_event_id: Any | None = None
+    source_note: Note | None = None
 
     # Notation & Engraver Details
-    articulations: list[str] = Field(default_factory=list)  # e.g., ['accent', 'staccato', 'tenuto']
-    expressions: list[str] = Field(default_factory=list)  # e.g., ['slap', 'pop', 'palm_mute', 'fermata']
-    notehead: str = "normal"  # 'normal', 'x', 'diamond'
+    articulations: list[str] = Field(default_factory=list)
+    expressions: list[str] = Field(default_factory=list)
+    notehead: str = "normal"
     notehead_parenthesis: bool = False
     amplitude: float = 0.5
     dynamic_mark: str | None = None
@@ -373,11 +402,11 @@ class RhythmicAtom(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if not isinstance(self.duration_q, fractions.Fraction):
-            self.duration_q = fractions.Fraction(self.duration_q).limit_denominator(64)
+            self.__dict__["duration_q"] = fractions.Fraction(self.duration_q).limit_denominator(64)
         if not isinstance(self.start_q, fractions.Fraction):
-            self.start_q = fractions.Fraction(self.start_q).limit_denominator(64)
+            self.__dict__["start_q"] = fractions.Fraction(self.start_q).limit_denominator(64)
         if self.is_rest:
-            self.pitch = 0
+            self.__dict__["pitch"] = 0
 
     @classmethod
     def from_note(
@@ -389,7 +418,7 @@ class RhythmicAtom(BaseModel):
         is_rest: bool = False,
         tie_type: str | None = None,
     ) -> "RhythmicAtom":
-        if is_rest or note_obj is None or getattr(note_obj, "is_rest", False):
+        if is_rest or note_obj is None or note_obj.is_rest:
             return cls(
                 pitch=0,
                 duration_q=duration_q,
@@ -401,37 +430,43 @@ class RhythmicAtom(BaseModel):
                 parent_event_id=id(note_obj) if note_obj else None,
             )
 
-        fret_pos = getattr(note_obj, "fret_position", None)
-        string_n = fret_pos[0] if fret_pos else None
-        fret_n = fret_pos[1] if fret_pos else None
+        fret_pos = note_obj.fret_position
+        string_n = fret_pos[0] if fret_pos else note_obj.string
+        fret_n = fret_pos[1] if fret_pos else note_obj.fret
         finger_n = fret_pos[2] if fret_pos and len(fret_pos) > 2 else None
 
         articulations = []
-        if getattr(note_obj, "is_accent", False) or getattr(note_obj, "tag", "") == "accent":
+        if note_obj.is_accent or note_obj.tag == "accent":
             articulations.append("accent")
-        if getattr(note_obj, "is_staccato", False) or getattr(note_obj, "tag", "") == "staccato":
+        if note_obj.is_staccato or note_obj.tag == "staccato":
             articulations.append("staccato")
-        if getattr(note_obj, "is_tenuto", False):
+        if note_obj.is_tenuto:
             articulations.append("tenuto")
 
         expressions = []
-        if getattr(note_obj, "is_fermata", False):
+        if note_obj.is_fermata:
             expressions.append("fermata")
-        if getattr(note_obj, "is_slap", False) or getattr(note_obj, "tag", "") == "slap":
+        if note_obj.is_slap or note_obj.tag == "slap":
             expressions.append("slap")
-        elif getattr(note_obj, "is_pop", False) or getattr(note_obj, "tag", "") == "pop":
+        elif note_obj.is_pop or note_obj.tag == "pop":
             expressions.append("pop")
-        elif getattr(note_obj, "is_palm_mute", False) or getattr(note_obj, "tag", "") == "palm_mute":
+        elif note_obj.is_palm_mute or note_obj.tag == "palm_mute":
             expressions.append("palm_mute")
+        if note_obj.is_hammer_on or note_obj.tag == "hammer_on":
+            expressions.append("hammer_on")
+        if note_obj.is_pull_off or note_obj.tag == "pull_off":
+            expressions.append("pull_off")
+        if note_obj.is_slide or note_obj.tag == "slide":
+            expressions.append("slide")
 
         nh = "normal"
         nh_parent = False
-        if getattr(note_obj, "is_ghost", False) or getattr(note_obj, "tag", "") == "ghost":
+        if note_obj.is_ghost or note_obj.tag == "ghost":
             nh = "x"
             nh_parent = True
             if "staccato" not in articulations:
                 articulations.append("staccato")
-        elif getattr(note_obj, "is_harmonic", False) or getattr(note_obj, "tag", "") == "harmonic":
+        elif note_obj.is_harmonic or note_obj.tag == "harmonic":
             nh = "diamond"
 
         return cls(
@@ -450,9 +485,9 @@ class RhythmicAtom(BaseModel):
             expressions=expressions,
             notehead=nh,
             notehead_parenthesis=nh_parent,
-            amplitude=getattr(note_obj, "amplitude", 0.5),
-            dynamic_mark=getattr(note_obj, "dynamic_mark", None),
-            is_triplet=getattr(note_obj, "is_triplet", False),
+            amplitude=note_obj.amplitude,
+            dynamic_mark=note_obj.dynamic_mark,
+            is_triplet=note_obj.is_triplet,
         )
 
     def clone(self, **overrides) -> "RhythmicAtom":
@@ -484,8 +519,7 @@ class RhythmicAtom(BaseModel):
 class MeasureChunk:
     """
     A temporal, windowed slice of time corresponding to the exact duration of a single bar
-    within a piece of music. Acts as an isolated processing boundary during audio engine
-    and transcription stages, and as an intermediate measure container for score generation.
+    within a piece of music.
     """
 
     measure_index: int = 1
@@ -501,8 +535,6 @@ class MeasureChunk:
     is_compound: bool = False
     subdivisions: int = 4
 
-    # Backward compatibility attributes for single-atom or split-event wrapper instantiation
-    # e.g., MeasureChunk(measure_num, event, duration_q, is_rest, tie_type)
     _legacy_event: Any | None = None
     _legacy_duration_q: fractions.Fraction | None = None
     _legacy_is_rest: bool = False
@@ -525,7 +557,7 @@ class MeasureChunk:
             self._legacy_duration_q = (
                 fractions.Fraction(duration_q_or_end) if duration_q_or_end is not None else fractions.Fraction(0, 1)
             )
-            self._legacy_is_rest = is_rest or (event_or_start is None or getattr(event_or_start, "is_rest", False))
+            self._legacy_is_rest = is_rest or (event_or_start is None or event_or_start.is_rest)
             self._legacy_tie_type = tie_type
             self.events = [event_or_start] if event_or_start else []
             self.atoms = []
@@ -538,7 +570,7 @@ class MeasureChunk:
                 tie_type=self._legacy_tie_type,
             )
             if not isinstance(event_or_start, Note) and event_or_start is not None:
-                atom.pitch = getattr(event_or_start, "pitch", 0)
+                atom.pitch = event_or_start.pitch
                 atom.source_note = event_or_start
             self.atoms.append(atom)
             self.measure_capacity = kwargs.get("measure_capacity", fractions.Fraction(4, 1))
@@ -676,12 +708,9 @@ class Song:
         self.parsed_key_str = parsed_key_str
         self.key_obj = key_obj
         if self.key_obj is None and self.parsed_key_str:
-            try:
-                from subtone.pitch_theory import parse_key_object
+            from subtone.musicality import parse_key_object
 
-                self.key_obj = parse_key_object(self.parsed_key_str)
-            except Exception:
-                pass
+            self.key_obj = parse_key_object(self.parsed_key_str)
 
         self.stem_folder = stem_folder
         self.bpm = bpm
@@ -699,6 +728,7 @@ class Song:
         self.slides = kwargs.get("slides", [])
         self.measures = kwargs.get("measures", [])
         self.phrases = kwargs.get("phrases", [])
+        self._beat_times: list[float] | None = None
 
         events = bass_audio_events or kwargs.get("audio_events") or kwargs.get("source_events") or []
         self._bass_audio_events = [e if isinstance(e, AudioEvent) else AudioEvent(**e) for e in events]
@@ -711,26 +741,49 @@ class Song:
         else:
             self._bass_notes = [Note.from_event(e) for e in self._bass_audio_events]
 
-        # Fold pitches to active tuning bounds to prevent out-of-range sub-bass artifacts
-        try:
-            from subtone.pitch_theory import fold_pitch_to_bass_range
-            from subtone.settings_loader import STANDARD_BASS_TUNING_MIDIS
+        # Consolidate micro-rests and close legato gaps (< 80ms) to prevent notation bloat
+        self.consolidate_rests_and_close_gaps(gap_threshold_sec=0.08)
 
-            tuning_midis = STANDARD_BASS_TUNING_MIDIS.get(self.tuning_type, [28, 33, 38, 43])
-            min_p = min(tuning_midis)
-            max_p = max(tuning_midis) + 24
+        # Fold pitches to active tuning bounds. `tuning_type` must be a known
+        # profile; an unrecognized value is a caller bug and should fail
+        # loudly rather than silently default to standard 4-string tuning.
+        from subtone.musicality import fold_pitch_to_bass_range
+        from subtone.settings import MAX_FRETBOARD_FRETS, STANDARD_BASS_TUNING_MIDIS
 
-            for evt in self._bass_audio_events:
-                if getattr(evt, "pitch", 0) > 0:
-                    folded = fold_pitch_to_bass_range(evt.pitch, min_pitch=min_p, max_pitch=max_p)
-                    evt.update_pitch(folded)
+        if self.tuning_type not in STANDARD_BASS_TUNING_MIDIS:
+            raise ValueError(
+                f"Unknown tuning_type {self.tuning_type!r}; expected one of "
+                f"{sorted(STANDARD_BASS_TUNING_MIDIS)}"
+            )
+        tuning_midis = STANDARD_BASS_TUNING_MIDIS[self.tuning_type]
+        min_p = min(tuning_midis)
+        max_p = max(tuning_midis) + MAX_FRETBOARD_FRETS
 
-            for n in self._bass_notes:
-                if getattr(n, "pitch", 0) > 0:
-                    folded = fold_pitch_to_bass_range(n.pitch, min_pitch=min_p, max_pitch=max_p)
-                    n.update_pitch(folded)
-        except Exception:
-            pass
+        for evt in self._bass_audio_events:
+            if evt.pitch > 0:
+                evt.update_pitch(fold_pitch_to_bass_range(evt.pitch, min_pitch=min_p, max_pitch=max_p))
+
+        for n in self._bass_notes:
+            if n.pitch > 0:
+                n.update_pitch(fold_pitch_to_bass_range(n.pitch, min_pitch=min_p, max_pitch=max_p))
+
+    def consolidate_rests_and_close_gaps(self, gap_threshold_sec: float = 0.08):
+        """Absorbs micro-rests (< 80ms) into preceding note durations and consolidates contiguous rests."""
+        if not self._bass_notes:
+            return
+        sorted_notes = sorted(self._bass_notes, key=lambda n: n.start)
+        consolidated = []
+        for i in range(len(sorted_notes)):
+            curr = sorted_notes[i]
+            if i < len(sorted_notes) - 1:
+                nxt = sorted_notes[i + 1]
+                gap = nxt.start - curr.end
+                if not curr.is_rest and gap > 0 and gap < gap_threshold_sec:
+                    curr.end = nxt.start
+            if curr.is_rest and curr.duration < gap_threshold_sec:
+                continue
+            consolidated.append(curr)
+        self._bass_notes = consolidated
 
     @property
     def bass_audio_events(self) -> list[AudioEvent]:
@@ -774,6 +827,7 @@ class Song:
             n if isinstance(n, Note) else (Note.from_event(n) if isinstance(n, AudioEvent) else Note(**n))
             for n in value
         ]
+        self.consolidate_rests_and_close_gaps(gap_threshold_sec=0.08)
 
     @property
     def bassNotes(self) -> list[Note]:
@@ -796,7 +850,7 @@ class Song:
 
     @property
     def beat_times(self) -> list[float]:
-        if hasattr(self, "_beat_times") and self._beat_times is not None:
+        if self._beat_times is not None:
             return self._beat_times
         if self.bpm > 0:
             bpm_val = float(self.bpm) if self.bpm and self.bpm > 0 else 120.0
@@ -982,7 +1036,7 @@ class Level(BaseModel):
         configs = {
             0: {
                 "name": "Minimalist Roots",
-                "description": "Downbeats and half-measure anchors only, creating a highly spacious foundational root note layout.",
+                "description": "Downbeats and half-measure anchors only.",
                 "ghost_notes_allowed": False,
                 "min_duration": 0.20,
                 "snaps_to_scale": True,
@@ -999,7 +1053,7 @@ class Level(BaseModel):
             },
             1: {
                 "name": "Fundamental Anchors",
-                "description": "Retains core groove anchors and primary subdivisions to establish the main structural chord progression.",
+                "description": "Retains core groove anchors and primary subdivisions.",
                 "ghost_notes_allowed": False,
                 "min_duration": 0.20,
                 "snaps_to_scale": True,
@@ -1016,7 +1070,7 @@ class Level(BaseModel):
             },
             2: {
                 "name": "Laid-Back Simple",
-                "description": "Brings in eighth-note pulses and on-beat subdivisions, filtering out complex rapid fills and ghost notes.",
+                "description": "Brings in eighth-note pulses and on-beat subdivisions.",
                 "ghost_notes_allowed": False,
                 "min_duration": 0.20,
                 "snaps_to_scale": False,
@@ -1033,7 +1087,7 @@ class Level(BaseModel):
             },
             3: {
                 "name": "Authentic Direct",
-                "description": "Original transcription minus soft percussive clicks and ghost notes, resulting in a clean melodic line.",
+                "description": "Original transcription minus soft percussive clicks.",
                 "ghost_notes_allowed": False,
                 "min_duration": 0.12,
                 "snaps_to_scale": False,
@@ -1061,7 +1115,7 @@ class Level(BaseModel):
             },
             4: {
                 "name": "Unfiltered Dynamic",
-                "description": "Matches the original recording's full notation, including syncopated microtones and selective ghost notes.",
+                "description": "Matches the original recording's full notation.",
                 "ghost_notes_allowed": True,
                 "min_duration": 0.0,
                 "snaps_to_scale": False,
@@ -1090,7 +1144,7 @@ class Level(BaseModel):
             },
             5: {
                 "name": "Complete Original",
-                "description": "The exact high-fidelity transcription featuring all expressive micro-dynamics, slides, and ghost notes.",
+                "description": "The exact high-fidelity transcription featuring all expressive dynamics.",
                 "ghost_notes_allowed": True,
                 "min_duration": 0.0,
                 "snaps_to_scale": False,
@@ -1179,7 +1233,7 @@ class Genre(BaseModel):
             "slap_non_bass_penalty": 18.0,
             "fret_stretch_penalty": 10.0,
             "position_shift_multiplier": 2.0,
-            "open_string_bonus": -1.5,
+            "open_string_bonus": -4.0,
         }
     )
     micro_timing: dict[str, Any] = Field(default_factory=dict)
@@ -1199,7 +1253,7 @@ class Genre(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if isinstance(self.rhythmic_anchor, str):
-            self.rhythmic_anchor = {"pattern": self.rhythmic_anchor}
+            self.__dict__["rhythmic_anchor"] = {"pattern": self.rhythmic_anchor}
 
     @classmethod
     def from_dict(cls, name: str, data: dict) -> "Genre":
@@ -1240,7 +1294,7 @@ class Genre(BaseModel):
                         "slap_non_bass_penalty": 18.0,
                         "fret_stretch_penalty": 10.0,
                         "position_shift_multiplier": 2.0,
-                        "open_string_bonus": -1.5,
+                        "open_string_bonus": -4.0,
                     },
                 ),
                 micro_timing=data.get("micro_timing", {}),

@@ -12,15 +12,15 @@ except ImportError:
     np = None
 
 # Ensure src directory is in Python path for testing
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from subtone.settings_loader import BASS_STRING_TUNINGS as BASS_TUNINGS
-from subtone.fretboard import ErgonomicFretboardHMMSolver
+from subtone.settings import BASS_STRING_TUNINGS as BASS_TUNINGS
+from subtone.biomechanics import ErgonomicFretboardHMMSolver
 from subtone.schemas import AudioEvent, Genre, MeasureChunk, Note, RhythmicAtom, Song
 from subtone.dsp import apply_bass_bandpass
-from subtone.pitch_theory import snap_song_to_scale, parse_key_object
-from subtone.engraver import build_and_export_song, decompose_note_to_atoms, filter_song_for_level, stream_quantized_events
-from subtone.settings_loader import (
+from subtone.musicality import snap_song_to_scale, parse_key_object, key
+from subtone.tabs import build_and_export_song, decompose_note_to_atoms, filter_song_for_level, stream_quantized_events, key
+from subtone.settings import (
     load_genre_configs,
     load_midi_folder_to_event_streams,
     parse_metadata_from_path,
@@ -497,7 +497,7 @@ class TestTomlConfigurations(unittest.TestCase):
     """
 
     def setUp(self):
-        self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src", "subtone", "config"))
+        self.config_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "subtone", "config"))
         self.assertTrue(
             os.path.isdir(self.config_dir),
             f"Config directory does not exist: {self.config_dir}",

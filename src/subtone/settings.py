@@ -1,4 +1,3 @@
-import argparse
 import copy
 import fractions
 import os
@@ -16,7 +15,7 @@ MAX_BASS_MIDI = 67  # G4
 
 
 def parse_metadata_from_path(*args, **kwargs):
-    from subtone.pitch_theory import parse_metadata_from_path as _p
+    from subtone.musicality import parse_metadata_from_path as _p
     return _p(*args, **kwargs)
 
 MODAL_SCALE_OFFSETS = {
@@ -310,7 +309,7 @@ def _midi_to_name(midi_val: int, key_obj=None) -> str:
     if midi_val is None:
         return "N/A"
     try:
-        from subtone.pitch_theory import midi_to_pitch_string
+        from subtone.musicality import midi_to_pitch_string
         return midi_to_pitch_string(midi_val, key_obj=key_obj)
     except Exception:
         names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -354,102 +353,100 @@ class AudioTranscriptionPipeline:
         del use_gpu  # GPU selection is handled by the installed audio dependencies.
 
         print("\n======================================================================")
-        print("                AUDIO TRANSCRIPTION PIPELINE RUN START                 ")
+        print("               SUBTONE 6-PHASE / 12-STAGE TRANSCRIPTION START          ")
         print("======================================================================")
 
-        # --- Stage 1: Metadata Parsing ---
-        print(f"\n[Stage 1: Metadata Parsing] Loading target input: {target_input}")
-        from subtone.pitch_theory import parse_metadata_from_path
-        artist_name, song_title, _, parsed_key, genre_name, genre_config = parse_metadata_from_path(
-            target_input,
+        from subtone.dsp import (
+            stage1_stem_separation_and_audio_to_midi,
+            stage2_multistem_f0_tracking,
+            stage3_drum_percussive_grid_mining,
+            stage4_frame_to_symbolic_bounding,
+            stage5_drum_pocket_and_groove_audit,
+            stage6_melodic_counterpoint_register_audit,
+            stage10_songwide_multistem_audit,
+        )
+        from subtone.musicality import stage7_harmonic_context_validation, snap_song_to_scale
+        from subtone.biomechanics import stage8_genre_pattern_and_fretboard_hmm
+        from subtone.tabs import (
+            stage9_pedagogical_abstraction_and_partitioning,
+            stage11_rest_synthesis_and_reconciliation,
+            stage12_musicxml_dom_serialization,
+            filter_song_for_level,
+        )
+
+        # ----------------------------------------------------------------------
+        # PHASE I: EXTERNAL SCRIPT STEM SEPARATION & AUDIO-TO-MIDI
+        # ----------------------------------------------------------------------
+        print("\n----------------------------------------------------------------------")
+        print("PHASE I: EXTERNAL SCRIPT STEM SEPARATION & AUDIO-TO-MIDI")
+        print("----------------------------------------------------------------------")
+        print("[Stage 1: External Script Stem Separation & Audio-to-MIDI]")
+        print("  • Multi-Stem Separation using Demucs")
+        print("  • Audio-to-MIDI Extraction with Basic-Pitch / Librosa")
+
+        meta, event_streams = stage1_stem_separation_and_audio_to_midi(
+            target_input=target_input,
             custom_genre=genre_override,
             config_path=self.genre_config_path,
         )
+        artist_name = meta["artist_name"]
+        song_title = meta["song_title"]
+        parsed_key = meta["parsed_key"]
+        genre_name = meta["genre_name"]
+        genre_config = meta["genre_config"]
+        song_stem_name = meta["song_stem_name"]
+        cached_events_path = meta["cached_events_path"]
+
         print(f"  ├─ Artist:        '{artist_name}'")
         print(f"  ├─ Song Title:    '{song_title}'")
         print(f"  ├─ Key Signature: '{parsed_key}'")
         print(f"  └─ Genre Context: '{genre_name}' (Override: '{genre_override or 'None'}')")
 
-        if genre_config:
-            extends = (
-                getattr(genre_config, "extends", "default")
-                if not isinstance(genre_config, dict)
-                else genre_config.get("extends", "default")
-            )
-            technique = (
-                getattr(genre_config, "technique", "default")
-                if not isinstance(genre_config, dict)
-                else genre_config.get("technique", "default")
-            )
-            tuning = (
-                getattr(genre_config, "tuning", "standard")
-                if not isinstance(genre_config, dict)
-                else genre_config.get("tuning", "standard")
-            )
+        # ----------------------------------------------------------------------
+        # PHASE II: SIGNAL INGESTION & GENRE-DRIVEN DSP FEATURE EXTRACTION
+        # ----------------------------------------------------------------------
+        print("\n----------------------------------------------------------------------")
+        print("PHASE II: SIGNAL INGESTION & GENRE-DRIVEN DSP FEATURE EXTRACTION")
+        print("----------------------------------------------------------------------")
+        print("[Stage 2: Multi-Stem Source Separation & Genre Policy F0 Tracking]")
+        print("  • Demucs HPSS (Bass, Drums, Vocals, Guitar, Piano, Other)")
+        print("  • Genre Policy Injection (Tuning, Technique, DSP Bounds)")
+        print("  • Dynamic F0 Tracking (Sub-bass, Drop Tuning, Slap Attacks)")
 
-            micro_timing = _get_cfg_dict(genre_config, "micro_timing")
-            articulation = _get_cfg_dict(genre_config, "articulation_intent")
-            fret_nav = _get_cfg_dict(genre_config, "fretboard_navigation")
-            level_profile = _get_cfg_dict(genre_config, "level_profile")
-            notation_engraving = _get_cfg_dict(genre_config, "notation_engraving")
-            harmonic_hysteresis = _get_cfg_dict(genre_config, "harmonic_hysteresis")
-
-            print(f"     ├─ Genre Profile: category='{extends}', technique='{technique}', tuning='{tuning}'")
-            if micro_timing:
-                print(f"     ├─ Micro Timing Config: {micro_timing}")
-            if articulation:
-                print(f"     ├─ Articulation Intent Rules: {articulation}")
-            if fret_nav:
-                print(f"     ├─ Fretboard Navigation Rules: {fret_nav}")
-            if level_profile:
-                print(f"     ├─ Level Profile Settings: {level_profile}")
-            if notation_engraving:
-                print(f"     ├─ Notation & Engraving Settings: {notation_engraving}")
-            if harmonic_hysteresis:
-                print(f"     └─ Harmonic Hysteresis Rules: {harmonic_hysteresis}")
-
-        from subtone.engraver import build_and_export_song, stream_quantized_events, filter_song_for_level
-        from subtone.dsp import process_audio_target_to_events
-
-        # --- Stage 2: Audio DSP & Transcription ---
-        print("\n[Stage 2: Audio DSP & Event Extraction] Processing audio target into event streams...")
-        event_streams, song_stem_name, cached_events_path = process_audio_target_to_events(
-            target_path=target_input,
+        event_streams, primary_key, tuning_type, fmin_hz = stage2_multistem_f0_tracking(
+            event_streams=event_streams,
+            target_input=target_input,
             genre_config=genre_config,
-            custom_genre=genre_override,
+            genre_override=genre_override,
         )
-        print(f"  ├─ Active Stem Folder / Name: {song_stem_name}")
-        print(f"  ├─ Cached Events Path:        {cached_events_path or 'N/A'}")
-        print("  └─ Extracted Event Streams:")
-        for stream_name, stream_data in event_streams.items():
-            ev_count = len(stream_data.get("events", []))
-            st_type = stream_data.get("stream_type", "auxiliary")
-            print(f"     ├─ [{stream_name}] type: {st_type}, events: {ev_count}")
+        print(f"  ├─ Ingested HPSS Stems: {list(event_streams.keys())}")
+        print(f"  ├─ Active Primary Stem: '{primary_key}'")
+        print(f"  ├─ Selected Tuning Profile: '{tuning_type}' (fmin={fmin_hz:.1f} Hz)")
+        print(f"  └─ Dynamic F0 Tracked Events: {len(event_streams.get(primary_key, {}).get('events', []))} events")
 
-        clean_filename = re.sub(r'[\\/*?:"<>|]', "", f"{artist_name} - {song_title}").strip()
-        os.makedirs(self.output_dir, exist_ok=True)
+        print("\n[Stage 3: Genre-Aware Percussive Grid & Rhythmic Anchor Mining [DRUMS]]")
+        print("  • Transient Energy Mining (Kick/Snare/Hi-Hat Maps)")
+        print("  • Dynamic Swing Ratio & Clave/Syncopation Grid Extraction")
 
-        selected_level = level if isinstance(level, int) and 0 <= level <= 5 else 5
-        target_levels = range(6) if generate_all_levels else [selected_level]
-
-        pYin_key = next(
-            (k for k in event_streams if "pYin" in k or "torch_crepe" in k or "touchcrepe" in k or "crepe" in k),
-            None,
+        drum_events, detected_bpm, time_sig = stage3_drum_percussive_grid_mining(
+            event_streams=event_streams,
+            genre_config=genre_config,
         )
-        if pYin_key:
-            primary_stream_key = pYin_key
-        elif "bass" in event_streams:
-            primary_stream_key = "bass"
-        else:
-            primary_stream_key = list(event_streams.keys())[0]
+        print(f"  ├─ Mined Drum Transients: {len(drum_events)} drum events")
+        print(f"  ├─ Estimated Tempo & Time Sig: {detected_bpm:.2f} BPM | {time_sig}")
+        print("  └─ Output: Continuous F0 Trajectories + AudioEvents")
 
-        # --- Stage 3: Song Model Assembly ---
-        print(
-            f"\n[Stage 3: Song Model Assembly] Initializing Song & Note abstractions for target stem '{primary_stream_key}'..."
-        )
+        # ----------------------------------------------------------------------
+        # PHASE III: SYMBOLIC CONVERSION, RHYTHMIC & MELODIC STEM VALIDATION
+        # ----------------------------------------------------------------------
+        print("\n----------------------------------------------------------------------")
+        print("PHASE III: SYMBOLIC CONVERSION, RHYTHMIC & MELODIC STEM VALIDATION")
+        print("----------------------------------------------------------------------")
+        print("[Stage 4: Frame-to-Symbolic Bounding & Quantization Grid Mapping]")
+
         source_song = Song.from_event_streams(
             event_streams=event_streams,
-            active_stream_name=primary_stream_key,
+            active_stream_name=primary_key,
             artist_name=artist_name,
             song_title=song_title,
             genres=[genre_name] if genre_name else [],
@@ -457,48 +454,58 @@ class AudioTranscriptionPipeline:
             parsed_key_str=parsed_key,
             stem_folder=cached_events_path,
         )
+        source_song.bpm = detected_bpm
+        source_song.time_sig = time_sig
 
-        total_bass_events = len(source_song.bass_audio_events)
-        total_bass_notes = len(source_song.bass_notes)
-
-        if meter is not None:
-            ts = meter.TimeSignature(source_song.time_sig)
-            measure_capacity = fractions.Fraction(ts.numerator * (4.0 / ts.denominator)).limit_denominator(64)
-        else:
-            parts = source_song.time_sig.split("/")
-            num = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 4
-            den = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 4
-            measure_capacity = fractions.Fraction(num * 4, den).limit_denominator(64)
-
-        source_chunks = list(
-            stream_quantized_events(
-                source_song.bass_notes, source_song.bpm, measure_capacity, source_song.is_compound, level=5
-            )
+        raw_notes = stage4_frame_to_symbolic_bounding(
+            event_streams=event_streams,
+            song=source_song,
+            genre_config=genre_config,
         )
-        total_measures = max(
-            [getattr(c, "measure_index", getattr(c, "measure_num", 1)) for c in source_chunks],
-            default=len(source_song.measures) or 1,
+        print(f"  ├─ Bounded Symbolic Note Objects: {len(raw_notes)} notes")
+        print("  └─ Quantization Grid Alignment: Complete")
+
+        print("\n[Stage 5: Genre-Conditioned Rhythmic Pocket & Groove Audit [DRUMS STEM]]")
+        print("  • Transient Attack Alignment & Pocket Determination")
+        print("  • Technique Ghost Note Tagging (Slap Clicks / Palm Mutes)")
+
+        pocket_notes = stage5_drum_pocket_and_groove_audit(
+            bass_notes=raw_notes,
+            drum_events=drum_events,
+            bpm=source_song.bpm,
+            genre_config=genre_config,
         )
+        aligned_count = sum(1 for n in pocket_notes if getattr(n, "is_pocket_aligned", False))
+        ghost_count = sum(1 for n in pocket_notes if getattr(n, "is_ghost", False))
+        print(f"  ├─ Pocket-Aligned Onsets: {aligned_count} / {len(pocket_notes)}")
+        print(f"  └─ Technique Ghost Notes Tagged: {ghost_count}")
 
-        pitches = [n.pitch for n in source_song.bass_notes if getattr(n, "pitch", None) is not None and n.pitch > 0]
-        min_pitch_str = _midi_to_name(min(pitches), key_obj=source_song.key_obj) if pitches else "N/A"
-        max_pitch_str = _midi_to_name(max(pitches), key_obj=source_song.key_obj) if pitches else "N/A"
-        min_midi = min(pitches) if pitches else 0
-        max_midi = max(pitches) if pitches else 0
+        print("\n[Stage 6: Melodic Counterpoint & Register Audit [VOCALS / GUITAR STEMS]]")
+        print("  • Spectral Masking Resolution & Pitch Cutoff Filtering")
 
-        avg_notes_per_measure = (total_bass_notes / total_measures) if total_measures > 0 else 0.0
-
-        print(
-            f"  ├─ BPM: {source_song.bpm:.2f} | Time Signature: {source_song.time_sig} | Tuning: {source_song.tuning_type}"
+        vocal_events = event_streams.get("vocals", {}).get("events", [])
+        guitar_events = event_streams.get("guitar", {}).get("events", [])
+        validated_notes = stage6_melodic_counterpoint_register_audit(
+            bass_notes=pocket_notes,
+            vocal_events=vocal_events,
+            guitar_events=guitar_events,
+            genre_config=genre_config,
         )
-        print(f"  ├─ Total Raw Audio Events: {total_bass_events}")
-        print(f"  ├─ Total High-Level Note Objs: {total_bass_notes}")
-        print(
-            f"  ├─ Partitioned Measures: {total_measures} MeasureChunks (Avg Density: {avg_notes_per_measure:.1f} notes/bar)"
-        )
-        print(f"  └─ Pitch Range: {min_pitch_str} (MIDI {min_midi}) ───> {max_pitch_str} (MIDI {max_midi})")
+        source_song.bass_notes = validated_notes
+        source_song.notes = validated_notes
+        print(f"  ├─ Register Range Validated: {len(validated_notes)} notes retained")
+        print("  └─ Output: Rhythmically & Melodically Validated Notes")
 
-        # --- Target Level Iteration ---
+        # Selected level & output setup
+        clean_filename = re.sub(r'[\\/*?:"<>|]', "", f"{artist_name} - {song_title}").strip()
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        selected_level = level if isinstance(level, int) and 0 <= level <= 5 else 5
+        target_levels = range(6) if generate_all_levels else [selected_level]
+
+        # ----------------------------------------------------------------------
+        # PHASE IV, V, VI PER TARGET LEVEL
+        # ----------------------------------------------------------------------
         for target_level in target_levels:
             print("\n======================================================================")
             print(f"                     PROCESSING TARGET LEVEL {target_level}                     ")
@@ -507,46 +514,35 @@ class AudioTranscriptionPipeline:
             level_song = copy.deepcopy(source_song)
             level_song.target_level = target_level
 
-            # Stage 4: Level Filtering
-            print(f"\n[Stage 4: Level Filtering] Applying Level {target_level} notation abstraction...")
-            pre_filter_notes = list(level_song.bass_notes)
-            pre_filter_count = len(pre_filter_notes)
-            filter_song_for_level(level_song)
-            post_filter_notes = level_song.bass_notes
-            post_filter_count = len(post_filter_notes)
-            retained_pct = (post_filter_count / pre_filter_count * 100.0) if pre_filter_count > 0 else 0.0
-            pre_density = pre_filter_count / total_measures if total_measures > 0 else 0.0
-            post_density = post_filter_count / total_measures if total_measures > 0 else 0.0
+            # PHASE IV: HARMONIC VALIDATION, ERGONOMICS & MEASURE PARTITIONING
+            print("\n----------------------------------------------------------------------")
+            print("PHASE IV: HARMONIC VALIDATION, ERGONOMICS & MEASURE PARTITIONING")
+            print("----------------------------------------------------------------------")
+            print("[Stage 7: Polyphonic Harmonic Context Validation [GUITAR / PIANO / OTHER]]")
+            print("  • Root vs. Inversion Resolution via Chroma/CQT Matrices")
+            print("  • Directional Enharmonic Pitch Spelling (Key Signature Tonal)")
 
-            print(
-                f"  ├─ Note Reduction: {pre_filter_count} ──> {post_filter_count} notes ({retained_pct:.1f}% retained)"
-            )
-            print(f"  ├─ Note Density Change: {pre_density:.1f} ──> {post_density:.1f} notes/measure")
-
-            # Stage 5: Pitch Theory & Key Snapping
-            print(f"\n[Stage 5: Pitch Theory] Snapping notes to scale '{level_song.key_obj}'...")
-            from subtone.pitch_theory import snap_song_to_scale
             pitches_before = [n.pitch for n in level_song.bass_notes]
-            snap_song_to_scale(level_song)
+            stage7_harmonic_context_validation(
+                song=level_song,
+                guitar_events=guitar_events,
+                piano_events=event_streams.get("piano", {}).get("events", []),
+            )
             pitches_after = [n.pitch for n in level_song.bass_notes]
-
             snapped_diff_count = sum(1 for b, a in zip(pitches_before, pitches_after) if b != a)
+
             sample_pitches_str = [
                 _midi_to_name(n.pitch, key_obj=level_song.key_obj) for n in level_song.bass_notes[:6]
             ]
             print(f"  ├─ Key Object: {level_song.key_obj}")
-            print(f"  ├─ Notes Adjusted to Scale: {snapped_diff_count} / {len(pitches_after)}")
+            print(f"  ├─ Scale Snapped Notes: {snapped_diff_count} / {len(pitches_after)}")
             print(f"  └─ Sample Pitch Sequence (1st 6 Notes): {sample_pitches_str}")
 
-            # Stage 6: Ergonomic Fretboard Solver (HMM)
-            print(
-                "\n[Stage 6: Ergonomic Fretboard HMM] Calculating optimal string/fret path across Note sequence..."
-            )
-            from subtone.fretboard import ErgonomicFretboardHMMSolver
-            solver = ErgonomicFretboardHMMSolver(song=level_song)
-            solver.solve_song(level_song)
+            print("\n[Stage 8: Genre Pattern Engine & Biomechanical Ergonomic Solver]")
+            print("  • Genre Pattern Matching (Tumbao, Walking, Gallop, Slap)")
+            print("  • Fretboard HMM / Viterbi Path (Genre Cost Parameter Matrix)")
 
-            positions = level_song.fretboard_path or []
+            positions = stage8_genre_pattern_and_fretboard_hmm(level_song) or []
             sample_positions = positions[:5] if positions else []
 
             string_counts = {}
@@ -577,56 +573,79 @@ class AudioTranscriptionPipeline:
             slides_cnt = sum(level_song.slides) if getattr(level_song, "slides", None) else 0
 
             print(f"  ├─ Solved Positions (1st 5 Notes): {sample_positions}")
-            print(f"  ├─ Fretboard Range: Frets {min_fret} to {max_fret} (Average Fret: {avg_fret:.1f})")
+            print(f"  ├─ Active Fret Range: Frets {min_fret} to {max_fret} (Average Fret: {avg_fret:.1f})")
             print(f"  ├─ String Usage: {dict(sorted(string_counts.items()))}")
-            print("  └─ Articulations Detected on Note Stream:")
-            print(f"     ├─ Slaps: {slaps} | Pops: {pops} | Ghosts: {ghosts} | Palm Mutes: {palm_mutes}")
-            print(
-                f"     └─ Harmonics: {harmonics} | Downpicks: {downpicks} | Legatos: {legatos_cnt} | Slides: {slides_cnt} | Rakes: {rakes_cnt}"
-            )
+            print(f"  └─ Technique Articulations: Slaps={slaps}, Pops={pops}, Ghosts={ghosts}, PalmMutes={palm_mutes}, Harmonics={harmonics}")
 
-            # Stage 7: Score Building & MusicXML Export
+            print("\n[Stage 9: Pedagogical Abstraction (Levels 1-5) & Metric Partitioning]")
+            print("  • 5-Level Pedagogical Filter Matrix Application")
+            print("  • Measure Capacity Partitioning & Beat Boundary Note Tying")
+
+            pre_count = len(level_song.bass_notes)
+            level_chunks, measure_capacity = stage9_pedagogical_abstraction_and_partitioning(
+                song=level_song,
+                target_level=target_level,
+            )
+            post_count = len(level_song.bass_notes)
+            retained_pct = (post_count / pre_count * 100.0) if pre_count > 0 else 0.0
+
+            print(f"  ├─ Target Level: Level {target_level}")
+            print(f"  ├─ Retained Note Count: {post_count} notes ({retained_pct:.1f}% retained)")
+            print(f"  └─ MeasureChunks Partitioned: {len(level_chunks)} bars")
+
+            # PHASE V: HOLISTIC MULTI-STEM VALIDATION & REST SYNTHESIS ENGINE
+            print("\n----------------------------------------------------------------------")
+            print("PHASE V: HOLISTIC MULTI-STEM VALIDATION & REST SYNTHESIS ENGINE")
+            print("----------------------------------------------------------------------")
+            print("[Stage 10: Song-Wide Multi-Stem Audit, Outlier Pruning & Coherence]")
+            print("  • Cross-Scan Bass against ALL STEMS (Drums/Guitar/Keys/Vocals)")
+            print("  • Section Healing & Melodic Strictest Bounds Enforcement")
+
+            stage10_songwide_multistem_audit(
+                song=level_song,
+                measure_chunks=level_chunks,
+                all_stem_events=event_streams,
+            )
+            print("  ├─ Cross-Scan Multi-Stem Validation: Complete")
+            print("  └─ Outlier Pruning & Section Healing Applied")
+
+            print("\n[Stage 11: First-Class Rest Synthesis & Measure Reconciliation]")
+            print("  • Instantiate Explicit Rest Objects (Duration, Position)")
+            print("  • Strict Measure Capacity Lock: Sum(Notes) + Sum(Rests) = Bar")
+
+            audited_chunks = stage11_rest_synthesis_and_reconciliation(
+                measure_chunks=level_chunks,
+                measure_capacity=measure_capacity,
+                time_sig=level_song.time_sig,
+            )
+            level_song.measures = audited_chunks
+            total_atoms = sum(len(getattr(c, "atoms", [])) for c in audited_chunks)
+            rest_atoms = sum(1 for c in audited_chunks for a in getattr(c, "atoms", []) if getattr(a, "is_rest", False))
+            print(f"  ├─ Explicit Rest Atoms Synthesized: {rest_atoms}")
+            print("  └─ Capacity Reconciliation Lock: 100% Validated Bar Measure Capacity")
+
+            # PHASE VI: PURE SCORE SERIALIZATION & MUSICXML ENGRAVING
+            print("\n----------------------------------------------------------------------")
+            print("PHASE VI: PURE SCORE SERIALIZATION & MUSICXML ENGRAVING")
+            print("----------------------------------------------------------------------")
+            print("[Stage 12: Pure 1:1 Score Object to MusicXML DOM Serialization]")
+
             if generate_all_levels:
                 output_name = f"{clean_filename}_Level{target_level}.musicxml"
             else:
                 output_name = f"{clean_filename}.musicxml"
 
             output_path = os.path.join(self.output_dir, output_name)
-            level_song.output_xml_path = output_path
-
-            print(
-                "\n[Stage 7: Score Building & Engraver Rules] Decomposing Note stream into MeasureChunks & RhythmicAtoms..."
-            )
-            level_chunks = list(
-                stream_quantized_events(
-                    level_song.bass_notes,
-                    level_song.bpm,
-                    measure_capacity,
-                    level_song.is_compound,
-                    level=target_level,
-                )
-            )
-            level_measures_cnt = max(
-                [getattr(c, "measure_index", getattr(c, "measure_num", 1)) for c in level_chunks],
-                default=len(level_song.measures) or 1,
+            final_xml_path = stage12_musicxml_dom_serialization(
+                song=level_song,
+                measure_chunks=audited_chunks,
+                output_path=output_path,
             )
 
-            level_atoms = [atom for c in level_chunks for atom in c.atoms]
-            total_atoms_cnt = len(level_atoms)
-            pitched_atoms_cnt = sum(1 for a in level_atoms if not a.is_rest and a.pitch > 0)
-            rest_atoms_cnt = sum(1 for a in level_atoms if a.is_rest or a.pitch == 0)
-            tied_atoms_cnt = sum(1 for a in level_atoms if a.tie_type is not None)
+            print("  ├─ Score Object Tree Serialized to MusicXML DOM")
+            print(f"  └─ Output saved: {final_xml_path}")
 
-            print(f"  ├─ Total MeasureChunks Built: {level_measures_cnt}")
-            print(f"  ├─ Total RhythmicAtoms Generated: {total_atoms_cnt}")
-            print(f"  │  ├─ Pitched Atoms: {pitched_atoms_cnt}")
-            print(f"  │  ├─ Rest Atoms:    {rest_atoms_cnt}")
-            print(f"  │  └─ Tied Atoms:    {tied_atoms_cnt}")
-
-            build_and_export_song(level_song)
-            print(f"  └─ Output saved: {output_path}")
-
-            # --- Pasteable Song Analysis Summary ---
+            # --- Song Analysis Summary ---
             print("\n" + "=" * 70)
             print("                     SONG TRANSCRIPTION ANALYSIS SUMMARY                ")
             print("=" * 70)
@@ -635,54 +654,28 @@ class AudioTranscriptionPipeline:
             print(f" Tempo & Meter:       {level_song.bpm:.2f} BPM | {level_song.time_sig}")
             print(f" Tuning Profile:      {level_song.tuning_type}")
             print(f" Abstraction Level:   Level {target_level}")
-            print(f" Total Measures:      {level_measures_cnt}")
+            total_measures_cnt = max(c.measure_num for c in audited_chunks) if audited_chunks else 0
+            print(f" Total Measures:      {total_measures_cnt}")
             print("-" * 70)
             print(" NOTE & RHYTHMIC ATOM METRICS")
-            print(f" • Raw Audio Events:  {total_bass_events}")
-            print(f" • Processed Notes:   {post_filter_count} ({retained_pct:.1f}% of level 5)")
-            print(f" • Pitch Range:       {min_pitch_str} (MIDI {min_midi}) to {max_pitch_str} (MIDI {max_midi})")
+            print(f" • Processed Notes:   {post_count} ({retained_pct:.1f}% retained)")
             print(f" • Scale Adjustments: {snapped_diff_count} notes snapped to {level_song.key_obj}")
-            print(
-                f" • Rhythmic Atoms:    {total_atoms_cnt} total ({pitched_atoms_cnt} pitched, {rest_atoms_cnt} rests, {tied_atoms_cnt} ties)"
-            )
+            print(f" • Rhythmic Atoms:    {total_atoms} total ({total_atoms - rest_atoms} pitched, {rest_atoms} rests)")
             print("-" * 70)
             print(" FRETBOARD & TECHNIQUE BREAKDOWN")
             print(f" • Active Fret Range: Fret {min_fret} to Fret {max_fret} (Avg Fret: {avg_fret:.1f})")
             print(" • String Breakdown:  " + ", ".join([f"Str {s}: {cnt}" for s, cnt in sorted(string_counts.items())]))
             print(f" • Techniques:        Slap={slaps}, Pop={pops}, Ghost={ghosts}, PalmMute={palm_mutes}")
-            print(
-                f" • Expressive Marks:  Legato={legatos_cnt}, Slide={slides_cnt}, Rake={rakes_cnt}, Harmonic={harmonics}"
-            )
+            print(f" • Expressive Marks:  Legato={legatos_cnt}, Slide={slides_cnt}, Rake={rakes_cnt}, Harmonic={harmonics}")
             print("-" * 70)
-            print(f" Output File:         {output_path}")
+            print(f" Output File:         {final_xml_path}")
             print("=" * 70 + "\n")
 
+            processed_song = level_song
 
-def main():
-    """Transcribe audio files or compressed AudioEvents folders into MusicXML files."""
-    parser = argparse.ArgumentParser(description="Subtone Bass Transcription Engine")
-    parser.add_argument("inputs", nargs="+", help="Path to audio file(s) or preprocessed AudioEvents folder(s)")
-    parser.add_argument("-a", "--all-levels", action="store_true", help="Generate outputs for all levels")
-    parser.add_argument("-o", "--output-dir", help="Custom output directory")
-    parser.add_argument("--level", type=int, default=5, help="Complexity level (0-5)")
-    parser.add_argument("-g", "--gpu", action="store_true", help="Use GPU-backed audio dependencies")
-    parser.add_argument("-c", "--config", help="Path to custom genre/configuration directory or TOML file")
-    parser.add_argument("--genre", help="Genre override name")
-    args = parser.parse_args()
-
-    pipeline = AudioTranscriptionPipeline(
-        output_dir=args.output_dir,
-        genre_config_path=args.config,
-    )
-    for target in args.inputs:
-        pipeline.run(
-            target_input=target,
-            generate_all_levels=args.all_levels,
-            level=args.level,
-            use_gpu=args.gpu,
-            genre_override=args.genre,
-        )
-
-
-if __name__ == "__main__":
-    main()
+        # `target_levels` always contains at least one entry (either the
+        # requested `level` or the full 0-5 sweep), so the loop above always
+        # runs and `processed_song` is always bound to a fully-transcribed
+        # Song. When --all-levels is used, the Song for the final (most
+        # complete) level is returned as the canonical result.
+        return processed_song

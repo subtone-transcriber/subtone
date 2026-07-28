@@ -1,6 +1,6 @@
 import argparse
 
-from subtone.settings_loader import AudioTranscriptionPipeline
+from subtone.settings import AudioTranscriptionPipeline
 
 
 def main():
@@ -20,13 +20,18 @@ def main():
         genre_config_path=args.config,
     )
     for target in args.inputs:
-        pipeline.run(
+        song = pipeline.run(
             target_input=target,
             generate_all_levels=args.all_levels,
             level=args.level,
             use_gpu=args.gpu,
             genre_override=args.genre,
         )
+        # pipeline.run() always returns a fully-populated Song whose `measures`
+        # collection always holds MeasureChunk objects once transcription
+        # succeeds, so no defensive hasattr/getattr fallback is needed here.
+        total_measures = max((m.measure_num for m in song.measures), default=0)
+        print(f"Transcription Complete: {song.song_title} | Total Measures: {total_measures}")
 
 
 if __name__ == "__main__":

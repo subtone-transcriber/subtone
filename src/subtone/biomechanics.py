@@ -1,13 +1,13 @@
 import math
 
 from subtone.schemas import Genre, Note, Song
-from subtone.settings_loader import (
+from subtone.settings import (
     DEFAULT_BPM,
     DEFAULT_TUNING_TYPE,
     FRETBOARD_TUNING_PROFILES,
     MAX_FRETBOARD_FRETS,
 )
-from subtone.pitch_theory import fold_pitch_to_bass_range
+from subtone.musicality import fold_pitch_to_bass_range
 
 
 class ErgonomicFretboardHMMSolver:
@@ -385,3 +385,15 @@ class ErgonomicFretboardHMMSolver:
             note.is_slide = note.is_slide or is_slide
             note.determine_category()
         return song
+
+
+def stage8_genre_pattern_and_fretboard_hmm(song: Song):
+    """
+    PHASE IV - Stage 8: Genre Pattern Engine & Biomechanical Ergonomic Solver
+    • Genre Pattern Matching (Tumbao, Walking, Gallop, Slap)
+    • Fretboard HMM / Viterbi Path (Genre Cost Parameter Matrix)
+    """
+    solver = ErgonomicFretboardHMMSolver(song=song)
+    solver.solve_song(song)
+    return song.fretboard_path
+

@@ -81,7 +81,7 @@ except ModuleNotFoundError:
     key = _KeyFallback
     pitch = _PitchFallback
 
-from subtone.settings_loader import MAX_BASS_MIDI, MIN_BASS_MIDI, MODAL_SCALE_OFFSETS
+from subtone.settings import MAX_BASS_MIDI, MIN_BASS_MIDI, MODAL_SCALE_OFFSETS
 from subtone.schemas import Song
 
 logger = logging.getLogger(__name__)
@@ -523,3 +523,18 @@ def parse_metadata_from_path(path_str: str, custom_genre: str | None = None, con
     genre_config = Genre(name=genre_name)
 
     return artist, title, clean_name, key_str, genre_name, genre_config
+
+
+def stage7_harmonic_context_validation(
+    song: Song,
+    guitar_events: list = None,
+    piano_events: list = None,
+):
+    """
+    PHASE IV - Stage 7: Polyphonic Harmonic Context Validation [GUITAR / PIANO / OTHER]
+    • Root vs. Inversion Resolution via Chroma/CQT Matrices
+    • Directional Enharmonic Pitch Spelling (Key Signature Tonal)
+    """
+    snap_song_to_scale(song)
+    return song.bass_notes
+

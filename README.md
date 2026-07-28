@@ -1,119 +1,58 @@
-            +===================================================+
-            |          RAW SONG INPUT (MP3 / Metadata)          |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE I: EXTERNAL SCRIPT STEM SEPARATION & AUDIO-TO-MIDI                  |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 1: External Script Stem Separation & Audio-to-MIDI            |  |
-|  | • Multi-Stem Separation using Demucs                                |  |
-|  | • Audio-to-MIDI Extraction with Basic-Pitch / Librosa               |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
-                                     ↓
-            +===================================================+
-            |                 MIDI Audio Stems                  |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE II: SIGNAL INGESTION & GENRE-DRIVEN DSP FEATURE EXTRACTION          |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 2: Multi-Stem Source Separation & Genre Policy F0 Tracking    |  |
-|  | • Demucs HPSS (Bass, Drums, Vocals, Guitar, Piano, Other)           |  |
-|  | • Genre Policy Injection (Tuning, Technique, DSP Bounds)            |  |
-|  | • Dynamic F0 Tracking (Sub-bass, Drop Tuning, Slap Attacks)         |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 3: Genre-Aware Percussive Grid & Rhythmic Anchor Mining       |  |
-|  |           [DRUMS]                                                   |  |
-|  | • Transient Energy Mining (Kick/Snare/Hi-Hat Maps)                  |  |
-|  | • Dynamic Swing Ratio & Clave/Syncopation Grid Extraction           |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
-                                     ↓
-            +===================================================+
-            |     Continuous F0 Trajectories + AudioEvents      |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE III: SYMBOLIC CONVERSION, RHYTHMIC & MELODIC STEM VALIDATION        |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 4: Frame-to-Symbolic Bounding & Quantization Grid Mapping     |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 5: Genre-Conditioned Rhythmic Pocket & Groove Audit           |  |
-|  |           [DRUMS STEM]                                              |  |
-|  | • Transient Attack Alignment & Pocket Determination                 |  |
-|  | • Technique Ghost Note Tagging (Slap Clicks / Palm Mutes)           |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 6: Melodic Counterpoint & Register Audit                      |  |
-|  |           [VOCALS / GUITAR STEMS]                                   |  |
-|  | • Spectral Masking Resolution & Pitch Cutoff Filtering              |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
-                                     ↓
-            +===================================================+
-            |    Rhythmically & Melodically Validated Notes     |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE IV: HARMONIC VALIDATION, ERGONOMICS & MEASURE PARTITIONING          |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 7: Polyphonic Harmonic Context Validation                     |  |
-|  |           [GUITAR / PIANO / OTHER]                                  |  |
-|  | • Root vs. Inversion Resolution via Chroma/CQT Matrices             |  |
-|  | • Directional Enharmonic Pitch Spelling (Key Signature Tonal)       |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 8: Genre Pattern Engine & Biomechanical Ergonomic Solver      |  |
-|  | • Genre Pattern Matching (Tumbao, Walking, Gallop, Slap)            |  |
-|  | • Fretboard HMM / Viterbi Path (Genre Cost Parameter Matrix)        |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 9: Pedagogical Abstraction (Levels 1-5) & Metric Partitioning |  |
-|  | • 5-Level Pedagogical Filter Matrix Application                     |  |
-|  | • Measure Capacity Partitioning & Beat Boundary Note Tying          |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
-                                     ↓
-            +===================================================+
-            |    MeasureChunks with Unvalidated Note Atoms      |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE V: HOLISTIC MULTI-STEM VALIDATION & REST SYNTHESIS ENGINE           |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 10: Song-Wide Multi-Stem Audit, Outlier Pruning & Coherence   |  |
-|  | • Cross-Scan Bass against ALL STEMS (Drums/Guitar/Keys/Vocals)      |  |
-|  | • Section Healing & Melodic Strictest Bounds Enforcement            |  |
-|  +---------------------------------------------------------------------+  |
-|                                    ↓                                      |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 11: First-Class Rest Synthesis & Measure Reconciliation       |  |
-|  | • Instantiate Explicit Rest Objects (Duration, Position)            |  |
-|  | • Strict Measure Capacity Lock: Sum(Notes) + Sum(Rests) = Bar       |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
-                                     ↓
-            +===================================================+
-            | Fully Audited Score Object Tree (Notes + Rests)   |
-            +===================================================+
-                                     ↓
-+---------------------------------------------------------------------------+
-| PHASE VI: PURE SCORE SERIALIZATION & MUSICXML ENGRAVING                   |
-|                                                                           |
-|  +---------------------------------------------------------------------+  |
-|  | Stage 12: Pure 1:1 Score Object to MusicXML DOM Serialization       |  |
-|  +---------------------------------------------------------------------+  |
-+---------------------------------------------------------------------------+
+# Pipeline Flow
+
+```mermaid
+graph TD
+    Input(("🎵 RAW SONG INPUT <br/> (MP3 / Metadata)"))
+
+    %% Phase 1
+    subgraph Phase 1: External Script Stem Separation & Audio-to-MIDI
+        direction TB
+        Stage1["Stage 1: Separation & Extraction"]
+        S1A["Multi-Stem Separation using Demucs"]
+        S1B["Audio-to-MIDI Extraction with Basic-Pitch / Librosa"]
+        
+        Stage1 --- S1A
+        Stage1 --- S1B
+    end
+
+    MIDI_Stems>"🎹 MIDI Audio Stems"]
+
+    %% Phase 2
+    subgraph Phase 2: Signal Ingestion & Genre-Driven DSP Feature Extraction
+        direction TB
+        
+        Stage2["Stage 2: Multi-Stem Source Separation & Genre Policy F0 Tracking"]
+        S2A["Demucs HPSS (Bass, Drums, Vocals, Guitar, Piano, Other)"]
+        S2B["Genre Policy Injection (Tuning, Technique, DSP Bounds)"]
+        S2C["Dynamic F0 Tracking (Sub-bass, Drop Tuning, Slap Attacks)"]
+        
+        Stage2 --- S2A
+        Stage2 --- S2B
+        Stage2 --- S2C
+        
+        Stage3["Stage 3: Genre-Aware Percussive Grid & Rhythmic Anchor Mining"]
+        S3A["[DRUMS] Transient Energy Mining (Kick/Snare/Hi-Hat Maps)"]
+        S3B["Dynamic Swing Ratio & Clave/Syncopation Grid Extraction"]
+        
+        Stage3 --- S3A
+        Stage3 --- S3B
+    end
+
+    Output(("📊 Continuous F0 Trajectories + AudioEvents"))
+
+    %% Connections
+    Input --> Stage1
+    S1A & S1B --> MIDI_Stems
+    MIDI_Stems --> Stage2
+    Stage2 --> Stage3
+    S2C & S3B --> Output
+    
+    classDef io fill:#2d3748,stroke:#4a5568,stroke-width:2px,color:#fff,stroke-dasharray: 5 5;
+    classDef intermediate fill:#2b6cb0,stroke:#2c5282,stroke-width:2px,color:#fff;
+    classDef phase fill:#1a202c,stroke:#4a5568,stroke-width:1px,color:#e2e8f0;
+
+    class Input,Output io;
+    class MIDI_Stems intermediate;
+    style Phase 1 fill:#f7fafc,stroke:#cbd5e0,stroke-width:2px,color:#1a202c;
+    style Phase 2 fill:#f7fafc,stroke:#cbd5e0,stroke-width:2px,color:#1a202c;
+```
