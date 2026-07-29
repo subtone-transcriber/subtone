@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 import shutil
 import subprocess
 from typing import Any
@@ -499,21 +500,57 @@ def generate_bachata_bass_events(bpm: float = 128.0, duration_sec: float = 120.0
 
 
 def load_midi_folder_to_event_streams(midi_dir: str) -> dict[str, dict[str, Any]]:
-    """Loads all .mid / .midi files from a MIDI folder using pretty_midi into event streams."""
+    """Loads all .json (Essentia feature maps) or .mid / .midi files from a MIDI folder into event streams."""
     if not os.path.isdir(midi_dir):
         raise FileNotFoundError(f"MIDI directory not found: {midi_dir}")
 
     event_streams = {}
-    midi_files = [f for f in os.listdir(midi_dir) if f.endswith(".mid") or f.endswith(".midi")]
 
+    json_files = [f for f in os.listdir(midi_dir) if f.endswith(".json")]
+    for filename in sorted(json_files):
+        filepath = os.path.join(midi_dir, filename)
+        stem_name_raw = os.path.splitext(filename)[0].lower()
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        raw_events = data.get("events", [])
+        events = [e if isinstance(e, AudioEvent) else AudioEvent(**e) for e in raw_events]
+        meta = data.get("metadata", {})
+        if "bpm" not in meta:
+            meta["bpm"] = 120.0
+        if "time_sig" not in meta:
+            meta["time_sig"] = "4/4"
+
+        stream_type = "primary" if "bass" in stem_name_raw else "auxiliary"
+        stream_key = f"{stem_name_raw}_primary" if stream_type == "primary" else f"{stem_name_raw}_auxiliary"
+
+        event_streams[stream_key] = {
+            "stream_name": stream_key,
+            "source_stem": stem_name_raw,
+            "stream_type": stream_type,
+            "engine": "essentia",
+            "events": events,
+            "bassAudioEvents": events,
+            "bass_audio_events": events,
+            "metadata": meta,
+            "global_features": data.get("global_features", {}),
+            "pitch_contour": data.get("pitch_contour", {}),
+        }
+        if stem_name_raw not in event_streams:
+            event_streams[stem_name_raw] = event_streams[stream_key]
+
+    midi_files = [f for f in os.listdir(midi_dir) if f.endswith(".mid") or f.endswith(".midi")]
     for filename in sorted(midi_files):
         filepath = os.path.join(midi_dir, filename)
         stem_name_raw = os.path.splitext(filename)[0]
 
-        events, meta = load_midi_file_to_events(filepath)
-
         parts = stem_name_raw.split("_")
-        source_stem = parts[0] if parts else "bass"
+        source_stem = parts[0].lower() if parts else "bass"
+
+        if source_stem in event_streams:
+            continue
+
+        events, meta = load_midi_file_to_events(filepath)
         engine_type = parts[1] if len(parts) > 1 else "pYin"
 
         stream_type = "primary" if source_stem == "bass" else "auxiliary"

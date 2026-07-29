@@ -1,6 +1,6 @@
 import math
 
-from subtone.schemas import Genre, Note, Song
+from subtone.schemas import Genre, Level, Note, Song
 from subtone.settings import (
     DEFAULT_BPM,
     DEFAULT_TUNING_TYPE,
@@ -8,6 +8,22 @@ from subtone.settings import (
     MAX_FRETBOARD_FRETS,
 )
 from subtone.musicality import fold_pitch_to_bass_range
+
+# --- Finger Transition ("Jacks") Cost Matrix ---
+# Approximates real hand strain between consecutive fretting fingers. Index-to-
+# middle (1-2) is the cheapest, most natural transition; ring-to-pinky (3-4) is
+# the most expensive because those two digits share flexor tendons and can't
+# move fully independently. Diagonal entries (same finger reused on a new
+# fret) are handled separately as the position-shift cost; this matrix only
+# covers finger-to-finger handoffs.
+FINGER_TRANSITION_COST = {
+    (1, 2): 1.0, (2, 1): 1.0,
+    (2, 3): 1.6, (3, 2): 1.6,
+    (3, 4): 3.2, (4, 3): 3.2,
+    (1, 3): 1.9, (3, 1): 1.9,
+    (2, 4): 2.4, (4, 2): 2.4,
+    (1, 4): 2.8, (4, 1): 2.8,
+}
 
 
 class ErgonomicFretboardHMMSolver:
@@ -28,6 +44,13 @@ class ErgonomicFretboardHMMSolver:
         self.strings = FRETBOARD_TUNING_PROFILES[self.tuning_type]
         self.num_frets = MAX_FRETBOARD_FRETS
 
+        # Resolve the target Difficulty/Skill Level, honoring a genre-supplied
+        # level_profile override the same way Level.from_id already does
+        # elsewhere in the pipeline. Defaults to Level 5 (unrestricted) when no
+        # song/level is known, so standalone solver use is unaffected.
+        target_level_id = getattr(song, "target_level", 5) if song is not None else 5
+        self.level = Level.from_id(target_level_id, level_profile=self.genre_config.level_profile)
+
         # Read technique penalty costs dynamically from genre config
         costs = self.genre_config.costs
         # `or` treats an explicitly-configured 0.0 penalty as falsy and silently overrides
@@ -37,6 +60,29 @@ class ErgonomicFretboardHMMSolver:
         self.fret_stretch_penalty = costs.get("fret_stretch_penalty", 20.0)
         self.shift_multiplier = costs.get("position_shift_multiplier", 3.0)
         self.open_bonus = costs.get("open_string_bonus", -2.0)
+        self.kinematic_penalty_coeff = costs.get("kinematic_braking_coefficient", 0.02)
+
+        # --- Level-Driven Ergonomic Scaling ---
+        # Beginner levels keep the hand anchored to a tight local box (high
+        # shift penalty, hard span cap) and lean on open strings to minimize
+        # fretting work; expert levels tolerate wide leaps, prefer a
+        # timbrally-consistent fretted path over open strings, and are more
+        # forgiving of ring/pinky-heavy finger combinations.
+        self.shift_multiplier *= self.level.shift_penalty_multiplier
+        self.open_bonus = costs.get("open_string_bonus", -2.0) * (1.0 + self.level.open_string_bias)
+        if self.level.timbre_first_pathing:
+            # Expert levels prefer fretted, timbrally-consistent notes over
+            # the brighter/inconsistent tone of an open string, so the bonus
+            # is nudged toward neutral rather than actively encouraging opens.
+            self.open_bonus += 1.5
+        self.max_fret_span = max(2, self.level.max_fret_span)
+        self.simandl_enforced = self.level.simandl_fingering_enforced
+        self.timbre_first = self.level.timbre_first_pathing
+        # 0.0 (beginner) .. ~1.0 (expert): scales down the ring/pinky and
+        # "jacks" (same-finger-same-fret repeat) penalties so advanced
+        # fingerings that a beginner shouldn't be taught remain available to
+        # a skilled player without dominating the path cost.
+        self.finger_tolerance = 1.0 - min(0.9, self.level.finger_independence_bonus)
 
         # Genre-specific technique flags
         features = self.genre_config.features
@@ -63,7 +109,15 @@ class ErgonomicFretboardHMMSolver:
                 if fret == 0:
                     positions.append((s, 0, 0))
                 else:
-                    fingers = [1, 2, 4] if fret <= 5 else [1, 2, 3, 4]
+                    # Beginner/intermediate levels are restricted to Simandl
+                    # (1-2-4) fingering in the low register to protect against
+                    # the wide low-fret stretches OFPF would demand; advanced
+                    # levels additionally allow one-finger-per-fret so the
+                    # solver can choose whichever is cheaper.
+                    if fret <= 5:
+                        fingers = [1, 2, 3, 4] if not self.simandl_enforced else [1, 2, 4]
+                    else:
+                        fingers = [1, 2, 3, 4]
                     for f in fingers:
                         positions.append((s, fret, f))
 
@@ -227,12 +281,15 @@ class ErgonomicFretboardHMMSolver:
                         else:
                             overlap_penalty = overlap_dur * 20.0
 
-                        if fret_span > 4:
-                            inertia_penalty = 80.0 + (25.0 * (fret_span - 4))
+                        span_cap = self.max_fret_span
+                        if fret_span > span_cap:
+                            # Fitts's Law: cost grows exponentially, not linearly, once a
+                            # stretch exceeds the register's biomechanical span limit.
+                            inertia_penalty = 40.0 * math.exp(0.85 * (fret_span - span_cap))
                         else:
                             inertia_penalty = fret_span * 1.2
 
-                        if onset_dt_beats < 0.5 and fret_span >= 4:
+                        if onset_dt_beats < 0.5 and fret_span >= span_cap:
                             inertia_penalty += 120.0
 
                         if p_fret == 0 or c_fret == 0:
@@ -243,9 +300,12 @@ class ErgonomicFretboardHMMSolver:
                             d_curr = 1.0 - math.pow(2, -c_fret / 12.0)
                             fret_dist = abs(d_curr - d_prev) * 25.0
 
-                            if min(p_fret, c_fret) <= 5 and fret_span > 3:
+                            # Bass-register adjustment: the same span costs more in
+                            # frets 1-5, where the hand is already forced into a
+                            # narrower Simandl (1-2-4) grip.
+                            if min(p_fret, c_fret) <= 5 and fret_span > max(2, span_cap - 1):
                                 stretch_penalty = self.fret_stretch_penalty * 1.75
-                            elif fret_span > 4:
+                            elif fret_span > span_cap:
                                 stretch_penalty = self.fret_stretch_penalty
                             else:
                                 stretch_penalty = 0.0
@@ -255,22 +315,43 @@ class ErgonomicFretboardHMMSolver:
                         anchor_shift = abs(c_anchor - p_anchor)
 
                         if anchor_shift == 0:
+                            # Same hand position: cost is driven by which two fingers
+                            # have to hand off the note (see FINGER_TRANSITION_COST),
+                            # plus a heavy "jacks" penalty for re-striking the exact
+                            # same finger+fret in rapid succession.
                             finger_diff = c_finger - p_finger
                             fret_diff = c_fret - p_fret
-                            strain = (
+                            direction_strain = (
                                 8.0
                                 if (fret_diff > 0 and finger_diff < 0) or (fret_diff < 0 and finger_diff > 0)
                                 else 0.0
                             )
-                            transition_step_cost = (fret_dist * 0.3) + strain
+                            if p_finger > 0 and c_finger > 0 and p_finger == c_finger and p_fret == c_fret:
+                                jacks_penalty = (60.0 if onset_dt_beats < 0.25 else 15.0) * self.finger_tolerance
+                                finger_cost = jacks_penalty
+                            elif p_finger > 0 and c_finger > 0 and p_finger != c_finger:
+                                pair_cost = FINGER_TRANSITION_COST.get((p_finger, c_finger), 2.0)
+                                finger_cost = (pair_cost * 2.0 * self.finger_tolerance) + direction_strain
+                            else:
+                                finger_cost = direction_strain
+                            transition_step_cost = (fret_dist * 0.3) + finger_cost
                         else:
                             transition_step_cost = (anchor_shift * self.shift_multiplier) / (onset_dt_beats + 0.1)
+                            if p_finger > 0 and c_finger > 0 and p_finger != c_finger:
+                                pair_cost = FINGER_TRANSITION_COST.get((p_finger, c_finger), 2.0)
+                                transition_step_cost += pair_cost * self.finger_tolerance
 
                         if string_diff == 0:
                             string_shift = -2.0
                         elif string_diff > 0:
-                            string_shift = math.pow(string_diff, 1.3) * 1.8 + (80.0 if fret_span >= 4 else 0.0) + 15.0
+                            # Descending crossing (thin -> thick string): the plucking
+                            # finger naturally follows through onto the next string, so
+                            # this direction stays comparatively cheap (raking).
+                            string_shift = math.pow(string_diff, 1.3) * 1.8 + (80.0 if fret_span >= span_cap else 0.0) + 15.0
                         else:
+                            # Ascending crossing (thick -> thin string): the finger has
+                            # to actively lift clear of the strings in between, so this
+                            # direction carries a steeper exponent and base cost.
                             string_shift = math.pow(abs(string_diff), 1.4) * 2.5 + 15.0
 
                     open_cost = (
@@ -287,6 +368,25 @@ class ErgonomicFretboardHMMSolver:
                     anchor_dist = abs(c_fret - local_anchor) if c_fret > 0 else 0.0
                     anchor_cost = anchor_dist * 0.15
 
+                    # Kinetic directional braking: if the hand was already moving up
+                    # (or down) the neck and this transition reverses that direction,
+                    # charge a cost proportional to the change in "velocity" (frets
+                    # per second), the same way an abrupt momentum reversal costs more
+                    # energy than continuing in the same direction. The grandparent
+                    # fret position is recovered from the already-built backpointer
+                    # chain so this stays within the existing single-pass Viterbi scan.
+                    kinematic_penalty = 0.0
+                    grandparent_state = backpointer[t - 1].get(p_state) if t >= 2 else None
+                    if grandparent_state is not None:
+                        pp_fret = grandparent_state[1]
+                        dt_prev = max(0.05, notes[t - 1].start - notes[t - 2].start)
+                        dt_curr = max(0.05, curr_onset - prev_onset)
+                        v_prev = (p_fret - pp_fret) / dt_prev
+                        v_curr = (c_fret - p_fret) / dt_curr
+                        if v_prev * v_curr < 0:
+                            delta_v = v_curr - v_prev
+                            kinematic_penalty = min(150.0, self.kinematic_penalty_coeff * (delta_v**2))
+
                     local_cost = (
                         transition_step_cost
                         + stretch_penalty
@@ -297,6 +397,7 @@ class ErgonomicFretboardHMMSolver:
                         + tech_cost
                         + anchor_cost
                         + overlap_penalty
+                        + kinematic_penalty
                     )
                     # Apply non-linear scaling penalty only to positive costs to preserve negative hysteresis bonuses
                     total_score = V[t - 1][p_state] + local_cost + (0.1 * math.pow(max(0.0, local_cost), 2))

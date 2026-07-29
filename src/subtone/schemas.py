@@ -1028,6 +1028,20 @@ class Level(BaseModel):
     enabled_techniques: list[str] = Field(default_factory=list)
     enabled_articulations: list[str] = Field(default_factory=list)
 
+    # --- Ergonomic / Biomechanical Difficulty Scaling ---
+    # Consumed by ErgonomicFretboardHMMSolver to scale its cost model so the
+    # *physical* fretboard path -- not just which articulations are allowed --
+    # matches the target player's skill. Low levels favor a tight, local
+    # "box" position with Simandl (1-2-4) bass fingering and open strings;
+    # high levels tolerate wide leaps and prefer fretted, timbrally-consistent
+    # positions over open strings.
+    max_fret_span: int = 4
+    shift_penalty_multiplier: float = 1.0
+    open_string_bias: float = 0.0
+    simandl_fingering_enforced: bool = True
+    timbre_first_pathing: bool = False
+    finger_independence_bonus: float = 0.0
+
     @property
     def ghost_notes(self) -> bool:
         return self.ghost_notes_allowed
@@ -1068,6 +1082,12 @@ class Level(BaseModel):
                             "accent",
                         ],
                     ),
+                    max_fret_span=int(level_cfg.get("max_fret_span", 4)),
+                    shift_penalty_multiplier=float(level_cfg.get("shift_penalty_multiplier", 1.0)),
+                    open_string_bias=float(level_cfg.get("open_string_bias", 0.0)),
+                    simandl_fingering_enforced=level_cfg.get("simandl_fingering_enforced", True),
+                    timbre_first_pathing=level_cfg.get("timbre_first_pathing", False),
+                    finger_independence_bonus=float(level_cfg.get("finger_independence_bonus", 0.0)),
                 )
 
         configs = {
@@ -1087,6 +1107,12 @@ class Level(BaseModel):
                     "synth_emulation",
                 ],
                 "enabled_articulations": ["normal", "accent"],
+                "max_fret_span": 3,
+                "shift_penalty_multiplier": 2.2,
+                "open_string_bias": 1.0,
+                "simandl_fingering_enforced": True,
+                "timbre_first_pathing": False,
+                "finger_independence_bonus": 0.0,
             },
             1: {
                 "name": "Fundamental Anchors",
@@ -1104,6 +1130,12 @@ class Level(BaseModel):
                     "synth_emulation",
                 ],
                 "enabled_articulations": ["normal", "accent"],
+                "max_fret_span": 3,
+                "shift_penalty_multiplier": 2.0,
+                "open_string_bias": 0.85,
+                "simandl_fingering_enforced": True,
+                "timbre_first_pathing": False,
+                "finger_independence_bonus": 0.0,
             },
             2: {
                 "name": "Laid-Back Simple",
@@ -1121,6 +1153,12 @@ class Level(BaseModel):
                     "synth_emulation",
                 ],
                 "enabled_articulations": ["normal", "staccato", "accent"],
+                "max_fret_span": 4,
+                "shift_penalty_multiplier": 1.5,
+                "open_string_bias": 0.6,
+                "simandl_fingering_enforced": True,
+                "timbre_first_pathing": False,
+                "finger_independence_bonus": 0.15,
             },
             3: {
                 "name": "Authentic Direct",
@@ -1149,6 +1187,12 @@ class Level(BaseModel):
                     "slide",
                     "accent",
                 ],
+                "max_fret_span": 4,
+                "shift_penalty_multiplier": 1.15,
+                "open_string_bias": 0.35,
+                "simandl_fingering_enforced": True,
+                "timbre_first_pathing": False,
+                "finger_independence_bonus": 0.35,
             },
             4: {
                 "name": "Unfiltered Dynamic",
@@ -1178,6 +1222,12 @@ class Level(BaseModel):
                     "slide",
                     "accent",
                 ],
+                "max_fret_span": 5,
+                "shift_penalty_multiplier": 0.85,
+                "open_string_bias": 0.1,
+                "simandl_fingering_enforced": False,
+                "timbre_first_pathing": True,
+                "finger_independence_bonus": 0.6,
             },
             5: {
                 "name": "Complete Original",
@@ -1207,6 +1257,12 @@ class Level(BaseModel):
                     "slide",
                     "accent",
                 ],
+                "max_fret_span": 6,
+                "shift_penalty_multiplier": 0.65,
+                "open_string_bias": -0.15,
+                "simandl_fingering_enforced": False,
+                "timbre_first_pathing": True,
+                "finger_independence_bonus": 0.85,
             },
         }
 
@@ -1221,6 +1277,12 @@ class Level(BaseModel):
             downbeat_only=cfg["downbeat_only"],
             enabled_techniques=cfg["enabled_techniques"],
             enabled_articulations=cfg["enabled_articulations"],
+            max_fret_span=cfg["max_fret_span"],
+            shift_penalty_multiplier=cfg["shift_penalty_multiplier"],
+            open_string_bias=cfg["open_string_bias"],
+            simandl_fingering_enforced=cfg["simandl_fingering_enforced"],
+            timbre_first_pathing=cfg["timbre_first_pathing"],
+            finger_independence_bonus=cfg["finger_independence_bonus"],
         )
 
     def to_dict(self) -> dict:
